@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>anliways | 个人主页</title>
+    
+    <!-- 引入 Remix Icon 开源图标库 -->
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    
+    <style>
+        /* 全局基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: #f5f5f7; /* 苹果经典的淡灰底色 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1d1d1f; /* 苹果标志性的深色文字 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* 个人名片主卡片 */
+        .profile-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px; /* 黄金视觉宽度 */
+            padding: 40px 32px;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); /* 极其克制的柔和阴影 */
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-2px); /* 鼠标悬停轻微浮动 */
+        }
+
+        /* 头像占位符（首字母极简圆形） */
+        .avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #1d1d1f;
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto 24px auto;
+            letter-spacing: -1px;
+        }
+
+        /* 名字与简介 */
+        .name {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .bio {
+            font-size: 15px;
+            color: #86868b; /* 次要文字采用浅灰 */
+            margin-bottom: 36px;
+            font-weight: 400;
+        }
+
+        /* 链接列表容器 */
+        .links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px; /* 按钮间距 */
+        }
+
+        /* 极简按钮样式 */
+        .link-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #f5f5f7;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            text-decoration: none;
+            color: #1d1d1f;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        /* 按钮悬停交互：变为微白且带有精致边框 */
+        .link-item:hover {
+            background: #ffffff;
+            border-color: #d2d2d7;
+            transform: scale(1.01);
+        }
+
+        /* 图标与文本的左侧组合 */
+        .link-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .link-left i {
+            font-size: 20px;
+            color: #515154;
+        }
+
+        /* 右侧小箭头 */
+        .arrow-icon {
+            font-size: 16px;
+            color: #86868b;
+            transition: transform 0.2s ease;
+        }
+
+        .link-item:hover .arrow-icon {
+            transform: translateX(3px); /* 悬停时箭头向右微动 */
+        }
+
+        /* 底部版权信息 */
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #bfbfc3;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <!-- 头像区域 -->
+        <div class="avatar-placeholder">an</div>
+        
+        <!-- 个人资料 -->
+        <h1 class="name">Anliways</h1>
+        <p class="bio">个人开发者 · 媒体人</p>
+        
+        <!-- 社交与联系链接 -->
+        <div class="links-container">
+            
+            <!-- 1. 我的主页博客 (Telegraph) -->
+            <!-- 提示：后续拿到具体的文章或频道链接后，可将 href="https://telegra.ph" 替换为具体网址 -->
+            <a href="https://telegra.ph/Vol-1-My-Personal-Website-Log-07-09" class="link-item" target="_blank">
+                <div class="link-left">
+                    <i class="ri-book-read-line"></i>
+                    <span>我的博客</span>
+                </div>
+                <i class="ri-arrow-right-s-line arrow-icon"></i>
+            </a>
+
+            <!-- 2. 电子邮箱 -->
+            <a href="mailto:anliways8@gmail.com" class="link-item">
+                <div class="link-left">
+                    <i class="ri-mail-line"></i>
+                    <span>anliways8@gmail.com</span>
+                </div>
+                <i class="ri-arrow-right-s-line arrow-icon"></i>
+            </a>
+
+            <!-- 3. 微信联系方式 (点击一键复制) -->
+            <div class="link-item" onclick="copyWeChat()">
+                <div class="link-left">
+                    <i class="ri-wechat-2-line"></i>
+                    <span>微信：anliways</span>
+                </div>
+                <i class="ri-file-copy-line arrow-icon" style="font-size: 14px;"></i>
+            </div>
+
+        </div>
+
+        <!-- 底部签名 -->
+        <div class="footer">
+            © 2026 Anliways. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // 点击微信时的复制与提示弹窗
+        function copyWeChat() {
+            const wechatId = "Anliways";
+            navigator.clipboard.writeText(wechatId).then(() => {
+                alert("微信号 '" + wechatId + "' 已成功复制到剪贴板！");
+            }).catch(err => {
+                alert("微信号为: " + wechatId);
+            });
+        }
+    </script>
+</body>
+</html>
