@@ -18,16 +18,18 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #1d1d1f;
             display: flex;
+            flex-direction: column; /* 升级为纵向排列，支撑通栏底栏 */
+            align-items: center;
             justify-content: center;
-            align-items: center; 
             min-height: 100vh;
-            padding: 20px;
-            transition: padding-top 0.4s cubic-bezier(0.25, 1, 0.5, 1), align-items 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 0; /* 移除外层死 padding，由组件自己控制间距 */
         }
-        body.has-navbar { padding-top: 100px; align-items: flex-start; }
+        body.has-navbar { 
+            justify-content: flex-start; /* 有导航栏时靠顶排列，允许内容顺畅下滑 */
+        }
         .hidden { display: none !important; }
 
-        /* ==================== 2. 丝滑顶部导航栏 ==================== */
+        /* ==================== 2. 丝滑顶部导航栏（全屏铺满） ==================== */
         .top-navbar {
             position: fixed; top: 0; left: 0; width: 100%; height: 64px;
             background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -45,7 +47,14 @@
         .nav-link:hover, .nav-link.active { color: #0071e3; }
 
         /* ==================== 3. 视图 1：个人主页菜单卡片 ==================== */
-        .profile-card { background: #ffffff; width: 100%; max-width: 420px; padding: 40px 32px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); text-align: center; animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+        .profile-card { 
+            background: #ffffff; 
+            width: calc(100% - 40px); max-width: 420px; 
+            padding: 40px 32px; border-radius: 24px; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); text-align: center; 
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            margin: 40px 20px;
+        }
         .avatar-placeholder { width: 80px; height: 80px; background: #1d1d1f; color: #ffffff; font-size: 32px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin: 0 auto 24px auto; }
         .name { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
         .bio { font-size: 15px; color: #86868b; margin-bottom: 36px; }
@@ -57,8 +66,15 @@
         .arrow-icon { font-size: 16px; color: #86868b; transition: transform 0.2s ease; }
         .link-item:hover .arrow-icon { transform: translateX(3px); }
 
-        /* ==================== 4. 优化后的视图 2：项目橱窗 ==================== */
-        .showcase-card { background: #ffffff; width: 100%; max-width: 580px; padding: 40px 32px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); margin-bottom: 40px; }
+        /* ==================== 4. 视图 2：项目橱窗 ==================== */
+        .showcase-card { 
+            background: #ffffff; 
+            width: calc(100% - 40px); max-width: 580px; 
+            padding: 40px 32px; border-radius: 24px; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); 
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
+            margin-top: 104px; margin-bottom: 50px;
+        }
         .card-header { display: flex; align-items: center; margin-bottom: 32px; position: relative; }
         .back-btn { position: absolute; left: 0; color: #86868b; font-size: 24px; cursor: pointer; }
         .back-btn:hover { color: #1d1d1f; }
@@ -71,9 +87,16 @@
         .grid-title { font-size: 13px; font-weight: 500; color: #1d1d1f; }
 
         /* ==================== 5. 视图 3：博客文章双栏布局 ==================== */
-        .blog-split-container { display: flex; width: 100%; max-width: 1100px; gap: 28px; animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); margin-bottom: 40px; align-items: flex-start; }
+        .blog-split-container { 
+            display: flex; 
+            width: 100%; max-width: 1140px; 
+            padding: 0 20px; gap: 28px; 
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
+            margin-top: 104px; margin-bottom: 50px; 
+            align-items: flex-start; 
+        }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
-        .blog-sidebar { flex: 0 0 320px; background: #ffffff; padding: 24px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 140px); overflow-y: auto; }
+        .blog-sidebar { flex: 0 0 320px; background: #ffffff; padding: 24px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 150px); overflow-y: auto; }
         .blog-sidebar-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f; padding-left: 4px; }
         .blog-sidebar-item { display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; background: #f5f5f7; border: 1px solid transparent; border-radius: 14px; cursor: pointer; transition: all 0.2s ease; text-align: left; }
         .blog-sidebar-item:hover { background: #ffffff; border-color: #d2d2d7; }
@@ -82,12 +105,12 @@
         .sidebar-item-title { font-size: 15px; font-weight: 600; color: #1d1d1f; line-height: 1.4; }
         .sidebar-item-date { font-size: 12px; color: #86868b; }
         
-        .blog-preview-panel { flex: 1; background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); min-height: 450px; display: flex; flex-direction: column; max-height: calc(100vh - 140px); overflow-y: auto; }
+        .blog-preview-panel { flex: 1; background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); min-height: 450px; display: flex; flex-direction: column; max-height: calc(100vh - 150px); overflow-y: auto; }
         .preview-title { font-size: 26px; font-weight: 700; line-height: 1.3; margin-bottom: 12px; letter-spacing: -0.5px; }
         .preview-meta { display: flex; gap: 16px; font-size: 13px; color: #86868b; margin-bottom: 24px; border-bottom: 1px solid #f5f5f7; padding-bottom: 16px; }
         .preview-meta-item { display: flex; align-items: center; gap: 4px; }
         
-        /* 深度优化：正文 Markdown 长文排版观感 */
+        /* 正文 Markdown 样式 */
         .preview-body { font-size: 16px; color: #333336; line-height: 1.7; flex: 1; }
         .preview-body p { margin-bottom: 16px; }
         .preview-body h1, .preview-body h2, .preview-body h3 { color: #1d1d1f; margin: 28px 0 14px 0; font-weight: 600; }
@@ -102,20 +125,47 @@
         .preview-body img { max-width: 100%; border-radius: 12px; margin: 16px 0; }
         .preview-body blockquote { border-left: 4px solid #d2d2d7; padding-left: 16px; color: #86868b; font-style: italic; margin-bottom: 18px; }
 
-        /* ==================== 6. 响应式布局 ==================== */
+        /* ==================== 6. 终极进化：全屏通栏级苹果风底栏 ==================== */
+        .site-footer {
+            width: 100%;
+            background: transparent;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 30px 0;
+            margin-top: auto; /* 核心魔法：当页面内容不足一屏时，自动将底栏推至屏幕最底端 */
+            display: flex;
+            justify-content: center;
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .footer-container {
+            width: 100%;
+            max-width: 1200px; /* 完美对齐顶部导航栏 */
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #86868b;
+        }
+        .footer-left { font-weight: 400; }
+        .footer-right { display: flex; gap: 24px; }
+        .footer-right a { color: #86868b; text-decoration: none; transition: color 0.2s ease; }
+        .footer-right a:hover { color: #0071e3; }
+
+        /* ==================== 7. 响应式布局 ==================== */
         @media (max-width: 850px) {
-            .blog-split-container { flex-direction: column; align-items: stretch; gap: 20px; }
+            .blog-split-container { flex-direction: column; align-items: stretch; gap: 20px; margin-top: 84px; }
             .blog-sidebar { flex: none; max-height: 240px; }
             .blog-preview-panel { padding: 28px 24px; max-height: none; }
             .preview-title { font-size: 22px; }
+            .footer-container { flex-direction: column; gap: 12px; text-align: center; padding: 0 24px; }
         }
         @media (max-width: 640px) { .nav-container { padding: 0 24px; } .nav-links { gap: 20px; } .brand-name { display: none; } }
         @media (max-width: 500px) { .projects-grid { grid-template-columns: repeat(2, 1fr); } }
-        .footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid #f5f5f7; text-align: center; font-size: 12px; color: #bfbfc3; width: 100%; }
     </style>
 </head>
 <body>
 
+    <!-- 顶部导航（全屏通栏） -->
     <nav id="top-navbar" class="top-navbar">
         <div class="nav-container">
             <div class="nav-brand" onclick="toggleView('profile')">
@@ -130,6 +180,7 @@
         </div>
     </nav>
 
+    <!-- 视图 1：起始页 -->
     <div id="view-profile" class="profile-card">
         <div class="avatar-placeholder">an</div>
         <h1 class="name">anliways</h1>
@@ -165,9 +216,9 @@
                 <i class="ri-file-copy-line arrow-icon" style="font-size: 14px;"></i>
             </div>
         </div>
-        <div class="footer" style="margin-top:32px; border:none;">© 2026 anliways. All rights reserved.</div>
     </div>
 
+    <!-- 视图 2：项目橱窗 -->
     <div id="view-projects" class="showcase-card hidden">
         <div class="card-header">
             <a class="back-btn" onclick="toggleView('profile')" title="返回主页"><i class="ri-arrow-left-s-line"></i></a>
@@ -190,9 +241,9 @@
             <a href="#" class="grid-item"><div class="grid-icon"><i class="ri-robot-2-line"></i></div><span class="grid-title">Bot 部署</span></a>
             <a href="#" class="grid-item"><div class="grid-icon"><i class="ri-camera-lens-line"></i></div><span class="grid-title">摄影集</span></a>
         </div>
-        <div class="footer" style="border:none;">© 2026 anliways. All rights reserved.</div>
     </div>
 
+    <!-- 视图 3：博客文章双栏布局 -->
     <div id="view-blog" class="blog-split-container hidden">
         <div class="blog-sidebar">
             <div class="blog-sidebar-title">文章列表</div>
@@ -205,9 +256,20 @@
                 <div class="preview-meta-item"><i class="ri-user-line"></i><span id="pm-author">-</span></div>
             </div>
             <div id="pm-body" class="preview-body"></div>
-            <div class="footer">© 2026 anliways. All rights reserved.</div>
         </div>
     </div>
+
+    <!-- 全局独立全屏通栏底栏（起始页自动隐藏，其余页面无缝同步渲染） -->
+    <footer id="global-footer" class="site-footer hidden">
+        <div class="footer-container">
+            <div class="footer-left">Copyright © 2026 anliways. 保留所有权利。</div>
+            <div class="footer-right">
+                <a href="#" onclick="toggleView('profile')">返回首页</a>
+                <a href="https://github.com" target="_blank">GitHub</a>
+                <a href="mailto:anliways8@gmail.com">联系我</a>
+            </div>
+        </div>
+    </footer>
 
     <script>
         let blogData = [];
@@ -267,6 +329,7 @@
             const projectsView = document.getElementById('view-projects');
             const blogView = document.getElementById('view-blog');
             const topNavbar = document.getElementById('top-navbar');
+            const globalFooter = document.getElementById('global-footer');
 
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
 
@@ -277,6 +340,7 @@
             if (target === 'projects') {
                 projectsView.classList.remove('hidden');
                 topNavbar.classList.add('nav-visible'); 
+                globalFooter.classList.remove('hidden'); // 显示独立底栏
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-projects').classList.add('active');
                 document.title = "anliways | 项目橱窗";
@@ -285,6 +349,7 @@
             } else if (target === 'blog') {
                 blogView.classList.remove('hidden');
                 topNavbar.classList.add('nav-visible'); 
+                globalFooter.classList.remove('hidden'); // 显示独立底栏
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-blog').classList.add('active');
                 document.title = "anliways | 博客文章";
@@ -305,6 +370,7 @@
             } else {
                 profileView.classList.remove('hidden');
                 topNavbar.classList.remove('nav-visible'); 
+                globalFooter.classList.add('hidden'); // 起始页完美隐藏底栏
                 document.body.classList.remove('has-navbar');
                 document.title = "anliways | 个人主页";
             }
