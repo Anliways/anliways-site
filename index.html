@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anliways | 个人主页</title>
+    <title>anliways | 个人主页</title>
     
     <!-- 引入 Remix Icon 开源图标库 -->
-    <link href="https://jsdelivr.net" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     
     <style>
         /* 全局基础样式 */
@@ -18,9 +18,9 @@
         }
 
         body {
-            background-color: #f5f5f7; /* 苹果经典的淡灰底色 */
+            background-color: #f5f5f7; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1d1d1f; /* 苹果标志性的深色文字 */
+            color: #1d1d1f;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -28,23 +28,23 @@
             padding: 20px;
         }
 
-        /* 个人名片主卡片 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ==================== 视图 1：个人名片主卡片 ==================== */
         .profile-card {
             background: #ffffff;
             width: 100%;
-            max-width: 420px; /* 黄金视觉宽度 */
+            max-width: 420px;
             padding: 40px 32px;
             border-radius: 24px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04); /* 极其克制的柔和阴影 */
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
             text-align: center;
             transition: transform 0.3s ease;
+            animation: fadeIn 0.3s ease;
         }
 
-        .profile-card:hover {
-            transform: translateY(-2px); /* 鼠标悬停轻微浮动 */
-        }
-
-        /* 头像占位符（首字母极简圆形） */
         .avatar-placeholder {
             width: 80px;
             height: 80px;
@@ -60,7 +60,6 @@
             letter-spacing: -1px;
         }
 
-        /* 名字与简介 */
         .name {
             font-size: 24px;
             font-weight: 600;
@@ -70,19 +69,17 @@
 
         .bio {
             font-size: 15px;
-            color: #86868b; /* 次要文字采用浅灰 */
+            color: #86868b;
             margin-bottom: 36px;
             font-weight: 400;
         }
 
-        /* 链接列表容器 */
         .links-container {
             display: flex;
             flex-direction: column;
-            gap: 14px; /* 按钮间距 */
+            gap: 14px;
         }
 
-        /* 极简按钮样式 */
         .link-item {
             display: flex;
             align-items: center;
@@ -99,14 +96,12 @@
             cursor: pointer;
         }
 
-        /* 按钮悬停交互：变为微白且带有精致边框 */
         .link-item:hover {
             background: #ffffff;
             border-color: #d2d2d7;
             transform: scale(1.01);
         }
 
-        /* 图标与文本的左侧组合 */
         .link-left {
             display: flex;
             align-items: center;
@@ -118,7 +113,6 @@
             color: #515154;
         }
 
-        /* 右侧小箭头 */
         .arrow-icon {
             font-size: 16px;
             color: #86868b;
@@ -126,12 +120,178 @@
         }
 
         .link-item:hover .arrow-icon {
-            transform: translateX(3px); /* 悬停时箭头向右微动 */
+            transform: translateX(3px);
         }
 
-        /* 底部版权信息 */
+        /* ==================== 视图 2 & 3：橱窗与博客容器 ==================== */
+        .showcase-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 580px; 
+            padding: 40px 32px;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 0;
+            color: #86868b;
+            text-decoration: none;
+            font-size: 24px;
+            transition: color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .back-btn:hover {
+            color: #1d1d1f;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* --- 九宫格特有样式 --- */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 10px;
+            background: #f5f5f7;
+            border: 1px solid transparent;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .grid-item:hover {
+            background: #ffffff;
+            border-color: #e5e5ea;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+            transform: translateY(-4px);
+        }
+
+        .icon-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: #ffffff;
+            color: #1d1d1f;
+            border-radius: 16px;
+            font-size: 26px;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .grid-item:hover .icon-link {
+            transform: scale(1.08);
+            color: #0071e3; 
+            box-shadow: 0 4px 12px rgba(0,113,227,0.15);
+        }
+
+        .grid-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1d1d1f;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        @media (max-width: 500px) {
+            .projects-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* --- 博客列表特有样式 --- */
+        .blog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .blog-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: #f5f5f7;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            text-decoration: none;
+            color: #1d1d1f;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .blog-item:hover {
+            background: #ffffff;
+            border-color: #d2d2d7;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transform: translateY(-2px);
+        }
+
+        .blog-item-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .blog-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .blog-meta {
+            font-size: 13px;
+            color: #86868b;
+        }
+
+        .external-icon {
+            color: #86868b;
+            font-size: 20px;
+            transition: color 0.2s ease;
+        }
+
+        .blog-item:hover .external-icon {
+            color: #1d1d1f;
+            transform: translate(2px, -2px);
+        }
+
+        /* 底部版权 */
         .footer {
             margin-top: 40px;
+            text-align: center;
             font-size: 12px;
             color: #bfbfc3;
             font-weight: 400;
@@ -140,28 +300,31 @@
 </head>
 <body>
 
-    <div class="profile-card">
-        <!-- 头像区域 -->
+    <!-- 视图 1：主页名片 -->
+    <div id="view-profile" class="profile-card">
         <div class="avatar-placeholder">an</div>
-        
-        <!-- 个人资料 -->
-        <h1 class="name">Anliways</h1>
+        <h1 class="name">anliways</h1>
         <p class="bio">个人开发者 · 媒体人</p>
         
-        <!-- 社交与联系链接 -->
         <div class="links-container">
-            
-            <!-- 1. 我的主页博客 (Telegraph) -->
-            <!-- 提示：后续拿到具体的文章或频道链接后，可将 href="https://telegra.ph" 替换为具体网址 -->
-            <a href="https://telegra.ph/Vol-1-My-Personal-Website-Log-07-09" class="link-item" target="_blank">
+            <!-- 点击切换至博客视图 -->
+            <div class="link-item" onclick="toggleView('blog')">
                 <div class="link-left">
                     <i class="ri-book-read-line"></i>
-                    <span>我的博客</span>
+                    <span>博客文章 (Blog)</span>
                 </div>
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
-            </a>
+            </div>
 
-            <!-- 2. 电子邮箱 -->
+            <!-- 点击切换至项目视图 -->
+            <div class="link-item" onclick="toggleView('projects')">
+                <div class="link-left">
+                    <i class="ri-layout-grid-fill"></i>
+                    <span>项目橱窗 (Projects)</span>
+                </div>
+                <i class="ri-arrow-right-s-line arrow-icon"></i>
+            </div>
+
             <a href="mailto:anliways8@gmail.com" class="link-item">
                 <div class="link-left">
                     <i class="ri-mail-line"></i>
@@ -170,7 +333,6 @@
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
             </a>
 
-            <!-- 3. 微信联系方式 (点击一键复制) -->
             <div class="link-item" onclick="copyWeChat()">
                 <div class="link-left">
                     <i class="ri-wechat-2-line"></i>
@@ -178,24 +340,179 @@
                 </div>
                 <i class="ri-file-copy-line arrow-icon" style="font-size: 14px;"></i>
             </div>
-
         </div>
 
-        <!-- 底部签名 -->
-        <div class="footer">
-            © 2026 Anliways. All rights reserved.
-        </div>
+        <div class="footer">© 2026 anliways. All rights reserved.</div>
     </div>
 
+
+    <!-- 视图 2：项目橱窗 (3x3 九宫格布局，完整恢复) -->
+    <div id="view-projects" class="showcase-card hidden">
+        <div class="card-header">
+            <a class="back-btn" onclick="toggleView('profile')" title="返回主页">
+                <i class="ri-arrow-left-s-line"></i>
+            </a>
+            <h1 class="page-title">项目橱窗</h1>
+        </div>
+        
+        <!-- 3x3 Grid 容器，完整 9 个项目 -->
+        <div class="projects-grid">
+            
+            <!-- 项目 1 -->
+            <div class="grid-item">
+                <a href="https://telegra.ph" target="_blank" class="icon-link">
+                    <i class="ri-article-line"></i>
+                </a>
+                <span class="grid-title">媒体博客</span>
+            </div>
+
+            <!-- 项目 2 -->
+            <div class="grid-item">
+                <a href="https://github.com" target="_blank" class="icon-link">
+                    <i class="ri-github-fill"></i>
+                </a>
+                <span class="grid-title">开源主页</span>
+            </div>
+
+            <!-- 项目 3 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-terminal-box-line"></i>
+                </a>
+                <span class="grid-title">效率脚本</span>
+            </div>
+
+            <!-- 项目 4 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-image-edit-line"></i>
+                </a>
+                <span class="grid-title">设计资源</span>
+            </div>
+
+            <!-- 项目 5 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-cloud-line"></i>
+                </a>
+                <span class="grid-title">私有网盘</span>
+            </div>
+
+            <!-- 项目 6 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-code-s-slash-line"></i>
+                </a>
+                <span class="grid-title">API 服务</span>
+            </div>
+
+            <!-- 项目 7 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-database-2-line"></i>
+                </a>
+                <span class="grid-title">数据监控</span>
+            </div>
+
+            <!-- 项目 8 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-robot-2-line"></i>
+                </a>
+                <span class="grid-title">Bot 部署</span>
+            </div>
+
+            <!-- 项目 9 -->
+            <div class="grid-item">
+                <a href="#" target="_blank" class="icon-link">
+                    <i class="ri-camera-lens-line"></i>
+                </a>
+                <span class="grid-title">摄影集</span>
+            </div>
+
+        </div>
+
+        <div class="footer">© 2026 anliways. All rights reserved.</div>
+    </div>
+
+
+    <!-- 视图 3：博客文章列表 -->
+    <div id="view-blog" class="showcase-card hidden">
+        <div class="card-header">
+            <a class="back-btn" onclick="toggleView('profile')" title="返回主页">
+                <i class="ri-arrow-left-s-line"></i>
+            </a>
+            <h1 class="page-title">博客文章</h1>
+        </div>
+        
+        <div class="blog-list">
+            
+            <!-- 文章 1 -->
+            <a href="https://telegra.ph/your-article-url-1" target="_blank" class="blog-item">
+                <div class="blog-item-content">
+                    <h3 class="blog-title">记录日常思考与媒体观察</h3>
+                    <p class="blog-meta">2026年7月10日 • 随笔</p>
+                </div>
+                <i class="ri-arrow-right-up-line external-icon"></i>
+            </a>
+
+            <!-- 文章 2 -->
+            <a href="https://telegra.ph/your-article-url-2" target="_blank" class="blog-item">
+                <div class="blog-item-content">
+                    <h3 class="blog-title">极简主义设计在网页开发中的应用</h3>
+                    <p class="blog-meta">2026年6月25日 • 技术分享</p>
+                </div>
+                <i class="ri-arrow-right-up-line external-icon"></i>
+            </a>
+
+            <!-- 文章 3 -->
+            <a href="https://telegra.ph/your-article-url-3" target="_blank" class="blog-item">
+                <div class="blog-item-content">
+                    <h3 class="blog-title">独立开发者的第一年总结</h3>
+                    <p class="blog-meta">2026年1月1日 • 年度总结</p>
+                </div>
+                <i class="ri-arrow-right-up-line external-icon"></i>
+            </a>
+
+        </div>
+
+        <div class="footer">© 2026 anliways. All rights reserved.</div>
+    </div>
+
+
     <script>
-        // 点击微信时的复制与提示弹窗
+        // 一键复制微信逻辑
         function copyWeChat() {
-            const wechatId = "Anliways";
+            const wechatId = "anliways";
             navigator.clipboard.writeText(wechatId).then(() => {
                 alert("微信号 '" + wechatId + "' 已成功复制到剪贴板！");
             }).catch(err => {
                 alert("微信号为: " + wechatId);
             });
+        }
+
+        // 单页无刷新视图切换逻辑
+        function toggleView(target) {
+            const profileView = document.getElementById('view-profile');
+            const projectsView = document.getElementById('view-projects');
+            const blogView = document.getElementById('view-blog');
+
+            // 1. 先隐藏所有视图
+            profileView.classList.add('hidden');
+            projectsView.classList.add('hidden');
+            blogView.classList.add('hidden');
+
+            // 2. 根据目标展示对应视图
+            if (target === 'projects') {
+                projectsView.classList.remove('hidden');
+                document.title = "anliways | 项目橱窗";
+            } else if (target === 'blog') {
+                blogView.classList.remove('hidden');
+                document.title = "anliways | 博客文章";
+            } else {
+                profileView.classList.remove('hidden');
+                document.title = "anliways | 个人主页";
+            }
         }
     </script>
 </body>
