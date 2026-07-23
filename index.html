@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>anliways | 个人主页</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <!-- 核心引入：Markdown 实时转换器 -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
+
     <style>
         /* ==================== 1. 全局基础与暗夜主题样式 ==================== */
         html { scrollbar-gutter: stable; }
@@ -18,14 +18,14 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: rgba(255, 255, 255, 0.87); /* 降低透明度至 87% 的纯白，防眩光 */
             display: flex;
-            flex-direction: column; 
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 0; 
+            padding: 0;
         }
-        body.has-navbar { 
-            justify-content: flex-start; 
+        body.has-navbar {
+            justify-content: flex-start;
         }
         .hidden { display: none !important; }
 
@@ -61,21 +61,21 @@
         }
         .top-navbar.nav-visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
         .nav-container { width: 100%; max-width: 1200px; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; }
-        .nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
         .brand-avatar { width: 28px; height: 28px; background: #2c2c2e; color: rgba(255, 255, 255, 0.87); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
         .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: rgba(255, 255, 255, 0.87); }
         .nav-right-group { display: flex; align-items: center; gap: 24px; }
         .nav-links { display: flex; gap: 24px; }
-        .nav-link { font-size: 14px; color: #8E8E93; text-decoration: none; font-weight: 500; cursor: pointer; padding: 4px 0; transition: color 0.2s ease; }
+        .nav-link { font-size: 14px; color: #8E8E93; text-decoration: none; font-weight: 500; cursor: pointer; padding: 4px 0; transition: color 0.2s ease; background: none; border: 0; font-family: inherit; }
         .nav-link:hover, .nav-link.active { color: #0a84ff; }
 
         /* ==================== 3. 视图 1：个人主页菜单卡片 ==================== */
-        .profile-card { 
+        .profile-card {
             position: relative;
             background: #1E1E1E; /* 浅黑卡片基底 */
-            width: calc(100% - 40px); max-width: 420px; 
-            padding: 40px 32px; border-radius: 24px; 
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); text-align: center; 
+            width: calc(100% - 40px); max-width: 420px;
+            padding: 40px 32px; border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); text-align: center;
             animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
             margin: 40px 20px;
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -89,7 +89,7 @@
         .name { font-size: 24px; font-weight: 600; margin-bottom: 8px; color: rgba(255, 255, 255, 0.87); }
         .bio { font-size: 15px; color: #8E8E93; margin-bottom: 36px; }
         .links-container { display: flex; flex-direction: column; gap: 14px; }
-        .link-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #2c2c2e; border: 1px solid transparent; border-radius: 14px; text-decoration: none; color: rgba(255, 255, 255, 0.87); font-size: 15px; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
+        .link-item { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 16px 20px; background: #2c2c2e; border: 1px solid transparent; border-radius: 14px; text-decoration: none; color: rgba(255, 255, 255, 0.87); font-size: 15px; font-weight: 500; font-family: inherit; transition: all 0.2s ease; cursor: pointer; }
         .link-item:hover { background: #3a3a3c; border-color: rgba(255, 255, 255, 0.15); transform: scale(1.01); }
         .link-left { display: flex; align-items: center; gap: 12px; }
         .link-left i { font-size: 20px; color: #8E8E93; }
@@ -97,38 +97,38 @@
         .link-item:hover .arrow-icon { transform: translateX(3px); color: #0a84ff; }
 
         /* ==================== 4. 视图 2：项目橱窗 ==================== */
-        .projects-split-container { 
-            display: flex; 
-            width: 100%; max-width: 1140px; 
-            padding: 0 20px; gap: 28px; 
-            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
-            margin-top: 104px; margin-bottom: 50px; 
-            align-items: flex-start; 
+        .projects-split-container {
+            display: flex;
+            width: 100%; max-width: 1140px;
+            padding: 0 20px; gap: 28px;
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            margin-top: 104px; margin-bottom: 50px;
+            align-items: flex-start;
         }
 
-        .projects-sidebar { 
-            flex: 0 0 320px; 
-            background: #1E1E1E; 
-            padding: 24px; 
-            border-radius: 24px; 
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); 
+        .projects-sidebar {
+            flex: 0 0 320px;
+            background: #1E1E1E;
+            padding: 24px;
+            border-radius: 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex; 
-            flex-direction: column; 
-            gap: 16px; 
-            max-height: calc(100vh - 150px); 
-            overflow-y: auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
         }
 
-        .projects-sidebar .card-header { 
-            display: flex; 
-            align-items: center; 
-            position: relative; 
+        .projects-sidebar .card-header {
+            display: flex;
+            align-items: center;
+            position: relative;
             padding-bottom: 8px;
         }
 
-        .projects-sidebar .back-btn { 
-            position: absolute; left: 0; color: #8E8E93; font-size: 24px; cursor: pointer; 
+        .projects-sidebar .back-btn {
+            position: absolute; left: 0; color: #8E8E93; font-size: 24px; cursor: pointer; background: none; border: 0; padding: 0; font-family: inherit; line-height: 1;
         }
         .projects-sidebar .back-btn:hover { color: rgba(255, 255, 255, 0.87); }
         .projects-sidebar .page-title { font-size: 20px; font-weight: 600; width: 100%; text-align: center; color: rgba(255, 255, 255, 0.87); }
@@ -150,6 +150,8 @@
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: left;
+            color: inherit;
+            font-family: inherit;
         }
 
         .project-item:hover {
@@ -340,29 +342,29 @@
         }
 
         /* ==================== 5. 视图 3：博客文章双栏布局 ==================== */
-        .blog-split-container { 
-            display: flex; 
-            width: 100%; max-width: 1140px; 
-            padding: 0 20px; gap: 28px; 
-            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
-            margin-top: 104px; margin-bottom: 50px; 
-            align-items: flex-start; 
+        .blog-split-container {
+            display: flex;
+            width: 100%; max-width: 1140px;
+            padding: 0 20px; gap: 28px;
+            animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            margin-top: 104px; margin-bottom: 50px;
+            align-items: flex-start;
         }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
         .blog-sidebar { flex: 0 0 320px; background: #1E1E1E; padding: 24px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 150px); overflow-y: auto; }
         .blog-sidebar-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: rgba(255, 255, 255, 0.87); padding-left: 4px; }
-        .blog-sidebar-item { display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; background: #2c2c2e; border: 1px solid transparent; border-radius: 14px; cursor: pointer; transition: all 0.2s ease; text-align: left; }
+        .blog-sidebar-item { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 16px 20px; background: #2c2c2e; border: 1px solid transparent; border-radius: 14px; cursor: pointer; transition: all 0.2s ease; text-align: left; font-family: inherit; }
         .blog-sidebar-item:hover { background: #3a3a3c; border-color: rgba(255, 255, 255, 0.15); }
         .blog-sidebar-item.active { background: #2c2c2e; border-color: #0a84ff; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.15); }
         .blog-sidebar-item.active .sidebar-item-title { color: #0a84ff; }
         .sidebar-item-title { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.87); line-height: 1.4; }
         .sidebar-item-date { font-size: 12px; color: #8E8E93; }
-        
+
         .blog-preview-panel { flex: 1; background: #1E1E1E; padding: 40px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); min-height: 450px; display: flex; flex-direction: column; max-height: calc(100vh - 150px); overflow-y: auto; }
         .preview-title { font-size: 26px; font-weight: 700; line-height: 1.3; margin-bottom: 12px; letter-spacing: -0.5px; color: rgba(255, 255, 255, 0.87); }
         .preview-meta { display: flex; gap: 16px; font-size: 13px; color: #8E8E93; margin-bottom: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; }
         .preview-meta-item { display: flex; align-items: center; gap: 4px; }
-        
+
         .preview-body { font-size: 16px; color: rgba(255, 255, 255, 0.87); line-height: 1.7; flex: 1; }
         .preview-body p { margin-bottom: 16px; }
         .preview-body h1, .preview-body h2, .preview-body h3 { color: rgba(255, 255, 255, 0.87); margin: 28px 0 14px 0; font-weight: 600; }
@@ -675,7 +677,7 @@
             background: transparent;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             padding: 30px 0;
-            margin-top: auto; 
+            margin-top: auto;
             display: flex;
             justify-content: center;
             animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -692,8 +694,8 @@
         }
         .footer-left { font-weight: 400; }
         .footer-right { display: flex; gap: 24px; }
-        .footer-right a { color: #8E8E93; text-decoration: none; transition: color 0.2s ease; }
-        .footer-right a:hover { color: #0a84ff; }
+        .footer-right a, .footer-right button { color: #8E8E93; text-decoration: none; transition: color 0.2s ease; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+        .footer-right a:hover, .footer-right button:hover { color: #0a84ff; }
 
         /* ==================== 8. 响应式布局 (移动端恢复极简平铺) ==================== */
         @media (max-width: 850px) {
@@ -787,7 +789,7 @@
         }
 
         @media (max-width: 640px) { .nav-container { padding: 0 24px; } .nav-links { gap: 16px; } .brand-name { display: none; } }
-        @media (max-width: 500px) { 
+        @media (max-width: 500px) {
             .projects-list { grid-template-columns: repeat(2, 1fr); }
             .socials-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -798,16 +800,16 @@
     <!-- 顶部导航（全屏通栏） -->
     <nav id="top-navbar" class="top-navbar">
         <div class="nav-container">
-            <div class="nav-brand" onclick="toggleView('profile')">
+            <button type="button" class="nav-brand" onclick="toggleView('profile')" aria-label="返回主页">
                 <span class="brand-avatar">an</span>
                 <span class="brand-name">anliways</span>
-            </div>
+            </button>
             <div class="nav-right-group">
                 <div class="nav-links">
-                    <a id="nav-link-profile" class="nav-link" onclick="toggleView('profile')" data-zh="主页菜单" data-en="Home">主页菜单</a>
-                    <a id="nav-link-projects" class="nav-link" onclick="toggleView('projects')" data-zh="项目橱窗" data-en="Projects">项目橱窗</a>
-                    <a id="nav-link-blog" class="nav-link" onclick="toggleView('blog')" data-zh="博客文章" data-en="Blog">博客文章</a>
-                    <a id="nav-link-about" class="nav-link" onclick="toggleView('about')" data-zh="关于我" data-en="About">关于我</a>
+                    <button type="button" id="nav-link-profile" class="nav-link" onclick="toggleView('profile')" data-zh="主页菜单" data-en="Home">主页菜单</button>
+                    <button type="button" id="nav-link-projects" class="nav-link" onclick="toggleView('projects')" data-zh="项目橱窗" data-en="Projects">项目橱窗</button>
+                    <button type="button" id="nav-link-blog" class="nav-link" onclick="toggleView('blog')" data-zh="博客文章" data-en="Blog">博客文章</button>
+                    <button type="button" id="nav-link-about" class="nav-link" onclick="toggleView('about')" data-zh="关于我" data-en="About">关于我</button>
                 </div>
                 <!-- 导航栏中英文切换按钮 -->
                 <button class="lang-btn" onclick="toggleLanguage()">
@@ -829,29 +831,29 @@
         <div class="avatar-placeholder">an</div>
         <h1 class="name">anliways</h1>
         <p class="bio" data-zh="个人开发者 · 媒体人" data-en="Indie Developer · Content Creator">个人开发者 · 媒体人</p>
-        
+
         <div class="links-container">
-            <div class="link-item" onclick="toggleView('blog')">
+            <button type="button" class="link-item" onclick="toggleView('blog')">
                 <div class="link-left">
                     <i class="ri-book-read-line"></i>
                     <span data-zh="博客文章 (Blog)" data-en="Blog Articles">博客文章 (Blog)</span>
                 </div>
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
-            </div>
-            <div class="link-item" onclick="toggleView('projects')">
+            </button>
+            <button type="button" class="link-item" onclick="toggleView('projects')">
                 <div class="link-left">
                     <i class="ri-layout-grid-fill"></i>
                     <span data-zh="项目橱窗 (Projects)" data-en="Project Showcase">项目橱窗 (Projects)</span>
                 </div>
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
-            </div>
-            <div class="link-item" onclick="toggleView('about')">
+            </button>
+            <button type="button" class="link-item" onclick="toggleView('about')">
                 <div class="link-left">
                     <i class="ri-user-smile-line"></i>
                     <span data-zh="关于我 (About Me)" data-en="About Me">关于我 (About Me)</span>
                 </div>
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
-            </div>
+            </button>
             <a href="mailto:anliways8@gmail.com" class="link-item">
                 <div class="link-left">
                     <i class="ri-mail-line"></i>
@@ -859,13 +861,13 @@
                 </div>
                 <i class="ri-arrow-right-s-line arrow-icon"></i>
             </a>
-            <div class="link-item" onclick="copyWeChat()">
+            <button type="button" class="link-item" onclick="copyWeChat()">
                 <div class="link-left">
                     <i class="ri-wechat-2-line"></i>
                     <span data-zh="微信：anliways" data-en="WeChat: anliways">微信：anliways</span>
                 </div>
                 <i class="ri-file-copy-line arrow-icon" style="font-size: 14px;"></i>
-            </div>
+            </button>
         </div>
     </div>
 
@@ -873,7 +875,7 @@
     <div id="view-projects" class="projects-split-container hidden">
         <div class="projects-sidebar">
             <div class="card-header">
-                <a class="back-btn" onclick="toggleView('profile')" title="返回主页"><i class="ri-arrow-left-s-line"></i></a>
+                <button type="button" class="back-btn" onclick="toggleView('profile')" title="返回主页" aria-label="返回主页"><i class="ri-arrow-left-s-line" aria-hidden="true"></i></button>
                 <h1 class="page-title" data-zh="项目橱窗" data-en="Projects">项目橱窗</h1>
             </div>
             <div class="projects-list" id="projects-list-container"></div>
@@ -1033,7 +1035,7 @@
         <div class="footer-container">
             <div class="footer-left" data-zh="Copyright © 2026 anliways. 保留所有权利。" data-en="Copyright © 2026 anliways. All rights reserved.">Copyright © 2026 anliways. 保留所有权利。</div>
             <div class="footer-right">
-                <a href="#" onclick="toggleView('profile')" data-zh="返回首页" data-en="Home">返回首页</a>
+                <button type="button" onclick="toggleView('profile')" data-zh="返回首页" data-en="Home">返回首页</button>
                 <a href="https://github.com" target="_blank">GitHub</a>
                 <a href="mailto:anliways8@gmail.com" data-zh="联系我" data-en="Contact">联系我</a>
             </div>
@@ -1204,13 +1206,13 @@
 
         function copyWeChat() {
             const wechatId = "anliways";
-            const msg = currentLang === 'zh' 
-                ? "微信号 '" + wechatId + "' 已成功复制到剪贴板！" 
+            const msg = currentLang === 'zh'
+                ? "微信号 '" + wechatId + "' 已成功复制到剪贴板！"
                 : "WeChat ID '" + wechatId + "' copied to clipboard!";
             navigator.clipboard.writeText(wechatId).then(() => {
                 alert(msg);
-            }).catch(err => { 
-                alert((currentLang === 'zh' ? "微信号为: " : "WeChat ID: ") + wechatId); 
+            }).catch(err => {
+                alert((currentLang === 'zh' ? "微信号为: " : "WeChat ID: ") + wechatId);
             });
         }
 
@@ -1223,10 +1225,11 @@
             const activeId = currentActive ? currentActive.id.replace('pj-item-', '') : projectsData[0].id;
 
             container.innerHTML = '';
-            
+
             projectsData.forEach((project) => {
                 const title = project[`title_${currentLang}`] || project.title_zh;
-                const item = document.createElement('div');
+                const item = document.createElement('button');
+                item.type = 'button';
                 item.className = 'project-item';
                 item.id = `pj-item-${project.id}`;
                 item.onclick = () => handleProjectClick(project);
@@ -1260,7 +1263,7 @@
         function renderSubItems(subItems) {
             const container = document.getElementById('integrated-container');
             const grid = document.getElementById('integrated-grid');
-            
+
             if (!subItems || subItems.length === 0) {
                 container.classList.add('hidden');
                 return;
@@ -1314,7 +1317,8 @@
 
             container.innerHTML = '';
             blogData.forEach((article) => {
-                const item = document.createElement('div');
+                const item = document.createElement('button');
+                item.type = 'button';
                 item.className = 'blog-sidebar-item';
                 item.id = `sidebar-${article.id}`;
                 item.onclick = () => selectArticle(article.id);
@@ -1338,10 +1342,10 @@
                 document.getElementById('pm-title').innerText = article.title;
                 document.getElementById('pm-date').innerText = article.date;
                 document.getElementById('pm-author').innerText = article.author || "anliways";
-                
+
                 const loadingText = currentLang === 'zh' ? "正在加载内容..." : "Loading article...";
                 document.getElementById('pm-body').innerHTML = `<p style='color: #8E8E93;'>${loadingText}</p>`;
-                
+
                 fetch(`posts/${articleId}.md`)
                     .then(res => {
                         if (!res.ok) throw new Error();
@@ -1351,8 +1355,8 @@
                         document.getElementById('pm-body').innerHTML = marked.parse(mdText);
                     })
                     .catch(() => {
-                        const errText = currentLang === 'zh' 
-                            ? "文章正文内容加载失败，请检查 Markdown 文件是否存在。" 
+                        const errText = currentLang === 'zh'
+                            ? "文章正文内容加载失败，请检查 Markdown 文件是否存在。"
                             : "Failed to load post content. Please check if the Markdown file exists.";
                         document.getElementById('pm-body').innerHTML = `<p style='color: #8E8E93;'>${errText}</p>`;
                     });
@@ -1377,21 +1381,21 @@
 
             if (target === 'projects') {
                 projectsView.classList.remove('hidden');
-                topNavbar.classList.add('nav-visible'); 
-                globalFooter.classList.remove('hidden'); 
+                topNavbar.classList.add('nav-visible');
+                globalFooter.classList.remove('hidden');
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-projects').classList.add('active');
-                
-                initProjects(); 
+
+                initProjects();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                
+
             } else if (target === 'blog') {
                 blogView.classList.remove('hidden');
-                topNavbar.classList.add('nav-visible'); 
-                globalFooter.classList.remove('hidden'); 
+                topNavbar.classList.add('nav-visible');
+                globalFooter.classList.remove('hidden');
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-blog').classList.add('active');
-                
+
                 fetch('posts.json')
                     .then(res => res.json())
                     .then(data => {
@@ -1404,19 +1408,19 @@
                         document.getElementById('pm-body').innerHTML = `<p>${currentLang === 'zh' ? '未能成功获取文章列表，请检查 posts.json 文件配置。' : 'Failed to fetch post list. Please check posts.json configuration.'}</p>`;
                     });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                
+
             } else if (target === 'about') {
                 if (aboutView) aboutView.classList.remove('hidden');
-                topNavbar.classList.add('nav-visible'); 
-                globalFooter.classList.remove('hidden'); 
+                topNavbar.classList.add('nav-visible');
+                globalFooter.classList.remove('hidden');
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-about').classList.add('active');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
 
             } else {
                 profileView.classList.remove('hidden');
-                topNavbar.classList.remove('nav-visible'); 
-                globalFooter.classList.add('hidden'); 
+                topNavbar.classList.remove('nav-visible');
+                globalFooter.classList.add('hidden');
                 document.body.classList.remove('has-navbar');
             }
 
