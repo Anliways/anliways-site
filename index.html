@@ -1157,7 +1157,7 @@
         ];
 
         let blogData = [];
-        let blogLoaded = false;
+        const articleContentCache = {};
 
         // 切换中英文全局状态
         function toggleLanguage() {
@@ -1171,12 +1171,12 @@
             // 1. 更新所有包含 data-zh/data-en 的静态文本 DOM
             document.querySelectorAll('[data-zh]').forEach(el => {
                 const text = el.getAttribute(`data-${currentLang}`);
-                if (text) el.innerText = text;
+                if (text) el.textContent = text;
             });
 
             // 2. 更新语言按钮显示文案
             document.querySelectorAll('.lang-btn-text').forEach(el => {
-                el.innerText = currentLang === 'zh' ? 'EN' : '中文';
+                el.textContent = currentLang === 'zh' ? 'EN' : '中文';
             });
 
             // 3. 动态刷新项目橱窗
@@ -1340,6 +1340,12 @@
                 document.getElementById('pm-date').innerText = article.date;
                 document.getElementById('pm-author').innerText = article.author || "anliways";
                 
+                const cachedContent = articleContentCache[articleId];
+                if (cachedContent) {
+                    document.getElementById('pm-body').innerHTML = cachedContent;
+                    return;
+                }
+
                 const loadingText = currentLang === 'zh' ? "正在加载内容..." : "Loading article...";
                 document.getElementById('pm-body').innerHTML = `<p style='color: #8E8E93;'>${loadingText}</p>`;
                 
@@ -1349,7 +1355,9 @@
                         return res.text();
                     })
                     .then(mdText => {
-                        document.getElementById('pm-body').innerHTML = marked.parse(mdText);
+                        const renderedContent = marked.parse(mdText);
+                        articleContentCache[articleId] = renderedContent;
+                        document.getElementById('pm-body').innerHTML = renderedContent;
                     })
                     .catch(() => {
                         const errText = currentLang === 'zh' 
