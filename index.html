@@ -1171,12 +1171,12 @@
             // 1. 更新所有包含 data-zh/data-en 的静态文本 DOM
             document.querySelectorAll('[data-zh]').forEach(el => {
                 const text = el.getAttribute(`data-${currentLang}`);
-                if (text) el.innerText = text;
+                if (text) el.textContent = text;
             });
 
             // 2. 更新语言按钮显示文案
             document.querySelectorAll('.lang-btn-text').forEach(el => {
-                el.innerText = currentLang === 'zh' ? 'EN' : '中文';
+                el.textContent = currentLang === 'zh' ? 'EN' : '中文';
             });
 
             // 3. 动态刷新项目橱窗
