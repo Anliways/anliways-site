@@ -1157,6 +1157,7 @@
         ];
 
         let blogData = [];
+        const articleContentCache = {};
 
         // 切换中英文全局状态
         function toggleLanguage() {
@@ -1339,6 +1340,12 @@
                 document.getElementById('pm-date').innerText = article.date;
                 document.getElementById('pm-author').innerText = article.author || "anliways";
                 
+                const cachedContent = articleContentCache[articleId];
+                if (cachedContent) {
+                    document.getElementById('pm-body').innerHTML = cachedContent;
+                    return;
+                }
+
                 const loadingText = currentLang === 'zh' ? "正在加载内容..." : "Loading article...";
                 document.getElementById('pm-body').innerHTML = `<p style='color: #8E8E93;'>${loadingText}</p>`;
                 
@@ -1348,7 +1355,9 @@
                         return res.text();
                     })
                     .then(mdText => {
-                        document.getElementById('pm-body').innerHTML = marked.parse(mdText);
+                        const renderedContent = marked.parse(mdText);
+                        articleContentCache[articleId] = renderedContent;
+                        document.getElementById('pm-body').innerHTML = renderedContent;
                     })
                     .catch(() => {
                         const errText = currentLang === 'zh' 
