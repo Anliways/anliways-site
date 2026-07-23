@@ -942,35 +942,35 @@
             <div class="about-hero-socials">
                 <div class="socials-title" data-zh="社交与平台" data-en="Social & Links">社交与平台</div>
                 <div class="socials-grid">
-                    <a href="https://zhihu.com" target="_blank" class="social-item">
+                    <a href="https://zhihu.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-zhihu-line"></i>
                         <span data-zh="知乎" data-en="Zhihu">知乎</span>
                     </a>
-                    <a href="https://ruguoapp.com" target="_blank" class="social-item">
+                    <a href="https://ruguoapp.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-flashlight-line"></i>
                         <span data-zh="即刻" data-en="Jike">即刻</span>
                     </a>
-                    <a href="https://bilibili.com" target="_blank" class="social-item">
+                    <a href="https://bilibili.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-bilibili-line"></i>
                         <span data-zh="哔哩哔哩" data-en="Bilibili">哔哩哔哩</span>
                     </a>
-                    <a href="https://xiaohongshu.com" target="_blank" class="social-item">
+                    <a href="https://xiaohongshu.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-book-open-line"></i>
                         <span data-zh="小红书" data-en="RED">小红书</span>
                     </a>
-                    <a href="https://douyin.com" target="_blank" class="social-item">
+                    <a href="https://douyin.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-douyin-line"></i>
                         <span data-zh="抖音" data-en="Douyin">抖音</span>
                     </a>
-                    <a href="https://x.com" target="_blank" class="social-item">
+                    <a href="https://x.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-twitter-x-line"></i>
                         <span>X</span>
                     </a>
-                    <a href="https://linkedin.com" target="_blank" class="social-item">
+                    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-linkedin-fill"></i>
                         <span data-zh="领英" data-en="LinkedIn">领英</span>
                     </a>
-                    <a href="https://maimai.cn" target="_blank" class="social-item">
+                    <a href="https://maimai.cn" target="_blank" rel="noopener noreferrer" class="social-item">
                         <i class="ri-briefcase-line"></i>
                         <span data-zh="脉脉" data-en="Maimai">脉脉</span>
                     </a>
@@ -1034,7 +1034,7 @@
             <div class="footer-left" data-zh="Copyright © 2026 anliways. 保留所有权利。" data-en="Copyright © 2026 anliways. All rights reserved.">Copyright © 2026 anliways. 保留所有权利。</div>
             <div class="footer-right">
                 <a href="#" onclick="toggleView('profile')" data-zh="返回首页" data-en="Home">返回首页</a>
-                <a href="https://github.com" target="_blank">GitHub</a>
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
                 <a href="mailto:anliways8@gmail.com" data-zh="联系我" data-en="Contact">联系我</a>
             </div>
         </div>
@@ -1276,7 +1276,10 @@
                 const card = document.createElement('a');
                 card.className = 'integrated-card';
                 card.href = sub.link || '#';
-                if (sub.link && sub.link !== '#') card.target = "_blank";
+                if (sub.link && sub.link !== '#') {
+                    card.target = "_blank";
+                    card.rel = "noopener noreferrer";
+                }
 
                 card.innerHTML = `
                     <div class="integrated-card-left">
@@ -1296,7 +1299,7 @@
             const title = project[`title_${currentLang}`] || project.title_zh;
             if (window.innerWidth <= 850) {
                 if (project.subItems && project.subItems.length > 0 && project.subItems[0].link !== '#') {
-                    window.open(project.subItems[0].link, '_blank');
+                    window.open(project.subItems[0].link, '_blank', 'noopener,noreferrer');
                 } else {
                     alert((currentLang === 'zh' ? "正在查看：" : "Viewing: ") + title);
                 }
