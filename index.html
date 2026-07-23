@@ -6,8 +6,9 @@
     <title>anliways | 个人主页</title>
     
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <!-- 核心引入：Markdown 实时转换器 -->
+    <!-- 核心引入：Markdown 实时转换器与 HTML 清理器 -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
     
     <style>
         /* ==================== 1. 全局基础与暗夜主题样式 ==================== */
@@ -1348,7 +1349,9 @@
                         return res.text();
                     })
                     .then(mdText => {
-                        document.getElementById('pm-body').innerHTML = marked.parse(mdText);
+                        const parsedHtml = marked.parse(mdText);
+                        const sanitizedHtml = DOMPurify.sanitize(parsedHtml);
+                        document.getElementById('pm-body').innerHTML = sanitizedHtml;
                     })
                     .catch(() => {
                         const errText = currentLang === 'zh' 
