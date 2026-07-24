@@ -687,17 +687,22 @@
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-blog').classList.add('active');
                 
-                fetch('posts.json')
-                    .then(res => res.json())
-                    .then(data => {
-                        blogData = data;
-                        initBlogSidebar();
-                        if (blogData.length > 0) selectArticle(blogData[0].id);
-                    })
-                    .catch(err => {
-                        document.getElementById('pm-title').innerText = currentLang === 'zh' ? "加载失败" : "Failed to load";
-                        document.getElementById('pm-body').innerHTML = `<p>${currentLang === 'zh' ? '未能成功获取文章列表，请检查 posts.json 文件配置。' : 'Failed to fetch post list. Please check posts.json configuration.'}</p>`;
-                    });
+                if (blogLoaded && blogData.length > 0) {
+                    initBlogSidebar();
+                } else {
+                    fetch('posts.json')
+                        .then(res => res.json())
+                        .then(data => {
+                            blogData = data;
+                            blogLoaded = true;
+                            initBlogSidebar();
+                            if (blogData.length > 0) selectArticle(blogData[0].id);
+                        })
+                        .catch(err => {
+                            document.getElementById('pm-title').innerText = currentLang === 'zh' ? "加载失败" : "Failed to load";
+                            document.getElementById('pm-body').innerHTML = `<p>${currentLang === 'zh' ? '未能成功获取文章列表，请检查 posts.json 文件配置。' : 'Failed to fetch post list. Please check posts.json configuration.'}</p>`;
+                        });
+                }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
             } else if (target === 'about') {
