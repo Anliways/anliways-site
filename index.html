@@ -378,6 +378,45 @@
         let blogData = [];
         const articleContentCache = {};
 
+        const trustedIconClasses = new Set([
+            'ri-article-line',
+            'ri-newspaper-line',
+            'ri-draft-line',
+            'ri-rss-line',
+            'ri-github-fill',
+            'ri-github-line',
+            'ri-palette-line',
+            'ri-terminal-line',
+            'ri-terminal-box-line',
+            'ri-file-text-line',
+            'ri-file-zip-line',
+            'ri-image-edit-line',
+            'ri-remixicon-line',
+            'ri-layout-4-line',
+            'ri-cloud-line',
+            'ri-share-forward-line',
+            'ri-lock-line',
+            'ri-code-s-slash-line',
+            'ri-braces-line',
+            'ri-pulse-line',
+            'ri-database-2-line',
+            'ri-line-chart-line',
+            'ri-robot-2-line',
+            'ri-telegram-line',
+            'ri-camera-lens-line',
+            'ri-building-4-line',
+            'ri-landscape-line',
+            'ri-link',
+            'ri-arrow-right-s-line'
+        ]);
+
+        function createTrustedIcon(iconClass, extraClasses = []) {
+            const icon = document.createElement('i');
+            const safeIconClass = trustedIconClasses.has(iconClass) ? iconClass : 'ri-link';
+            icon.classList.add(safeIconClass, ...extraClasses);
+            return icon;
+        }
+
         // 切换中英文全局状态
         function toggleLanguage() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
@@ -450,10 +489,16 @@
                 item.className = 'project-item';
                 item.id = `pj-item-${project.id}`;
                 item.onclick = () => handleProjectClick(project);
-                item.innerHTML = `
-                    <div class="project-item-icon"><i class="${project.icon}"></i></div>
-                    <span class="project-item-title">${title}</span>
-                `;
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'project-item-icon';
+                iconWrap.appendChild(createTrustedIcon(project.icon));
+
+                const titleNode = document.createElement('span');
+                titleNode.className = 'project-item-title';
+                titleNode.textContent = title;
+
+                item.append(iconWrap, titleNode);
                 container.appendChild(item);
             });
 
@@ -470,7 +515,9 @@
                 const title = project[`title_${currentLang}`] || project.title_zh;
                 const desc = project[`desc_${currentLang}`] || project.desc_zh;
 
-                document.getElementById('pj-detail-icon').innerHTML = `<i class="${project.icon}"></i>`;
+                const detailIcon = document.getElementById('pj-detail-icon');
+                detailIcon.textContent = '';
+                detailIcon.appendChild(createTrustedIcon(project.icon));
                 document.getElementById('pj-detail-title').innerText = title;
                 document.getElementById('pj-detail-desc').innerText = desc;
                 renderSubItems(project.subItems);
@@ -501,16 +548,27 @@
                     card.rel = "noopener noreferrer";
                 }
 
-                card.innerHTML = `
-                    <div class="integrated-card-left">
-                        <i class="${sub.icon || 'ri-link'} integrated-card-icon"></i>
-                        <div class="integrated-card-info">
-                            <span class="integrated-card-title">${title}</span>
-                            <span class="integrated-card-desc">${desc || ''}</span>
-                        </div>
-                    </div>
-                    <i class="ri-arrow-right-s-line integrated-card-arrow"></i>
-                `;
+                const cardLeft = document.createElement('div');
+                cardLeft.className = 'integrated-card-left';
+
+                const cardIcon = createTrustedIcon(sub.icon || 'ri-link', ['integrated-card-icon']);
+
+                const cardInfo = document.createElement('div');
+                cardInfo.className = 'integrated-card-info';
+
+                const titleNode = document.createElement('span');
+                titleNode.className = 'integrated-card-title';
+                titleNode.textContent = title;
+
+                const descNode = document.createElement('span');
+                descNode.className = 'integrated-card-desc';
+                descNode.textContent = desc || '';
+
+                cardInfo.append(titleNode, descNode);
+                cardLeft.append(cardIcon, cardInfo);
+
+                const arrowIcon = createTrustedIcon('ri-arrow-right-s-line', ['integrated-card-arrow']);
+                card.append(cardLeft, arrowIcon);
                 grid.appendChild(card);
             });
         }
@@ -541,10 +599,16 @@
                 item.className = 'blog-sidebar-item';
                 item.id = `sidebar-${article.id}`;
                 item.onclick = () => selectArticle(article.id);
-                item.innerHTML = `
-                    <span class="sidebar-item-title">${article.title}</span>
-                    <span class="sidebar-item-date">${article.date}</span>
-                `;
+
+                const titleNode = document.createElement('span');
+                titleNode.className = 'sidebar-item-title';
+                titleNode.textContent = article.title;
+
+                const dateNode = document.createElement('span');
+                dateNode.className = 'sidebar-item-date';
+                dateNode.textContent = article.date;
+
+                item.append(titleNode, dateNode);
                 container.appendChild(item);
             });
 
