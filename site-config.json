@@ -1,0 +1,7 @@
+{
+  "homeBackground": {
+    "image": "assets/bg.jpg",
+    "overlay": 0.45,
+    "blur": 0
+  }
+}

@@ -12,7 +12,9 @@ anliways.com 的源码仓库。零依赖、纯静态个人主页：单页应用�
 ├── posts.json              # 博客文章列表
 ├── posts/                  # 文章 Markdown 正文（文件名 = 文章 id）
 ├── assets/
-│   └── og-image.png        # 社交分享图（1200×630）
+│   ├── og-image.png        # 社交分享图（1200×630）
+│   └── bg.jpg              # 主页自定义背景（Discord 风格 splash）
+├── site-config.json        # 站点个性化配置（主页背景等）
 ├── favicon.svg             # 站点图标
 └── scripts/
     └── validate-posts.js   # 内容数据校验脚本
@@ -57,6 +59,30 @@ python3 -m http.server 8080
 - `https://www.anliways.com/#/blog` — 博客文章
 - `https://www.anliways.com/#/blog/<文章id>` — 单篇文章（如 `#/blog/test-article`）
 - `https://www.anliways.com/#/about` — 关于我
+
+## 自定义主页背景（Discord 风格）
+
+主页支持全屏背景图 + 暗色遮罩 + 毛玻璃卡片的沉浸式效果（类似 Discord 邀请页）。
+编辑仓库根目录的 `site-config.json`：
+
+```json
+{
+  "homeBackground": {
+    "image": "assets/bg.jpg",   // 背景图片路径（也可以填外部 https 图片地址）
+    "overlay": 0.45,            // 暗色遮罩强度，0-1，越大越暗
+    "blur": 0                   // 背景模糊半径（px），建议 0-20
+  }
+}
+```
+
+三种用法：
+
+1. **换图片**：把新图替换 `assets/bg.jpg`（或改 `image` 字段指向新路径/外部链接）；
+2. **纯渐变背景**：删掉 `image` 字段，改用 `"gradient": "radial-gradient(circle at 50% 40%, #1e3a5f 0%, #121212 70%)"`（任意合法 CSS 渐变）；
+3. **关闭自定义背景**：把 `image` 和 `gradient` 都删掉，站点回退为默认纯色暗夜背景。
+
+背景仅在主页视图显示；进入项目橱窗、博客、关于我时自动恢复纯色，保证阅读体验。
+主页名片卡片会自动切换为半透明毛玻璃（backdrop blur）效果。
 
 ## RSS 订阅
 

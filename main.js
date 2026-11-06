@@ -274,6 +274,8 @@
         // 页面视图切换逻辑
         function renderView(target) {
             currentRoute = target;
+            // 自定义背景仅在主页视图显示
+            document.body.classList.toggle('bg-custom', target === 'profile' && homeBgConfigured);
             const profileView = document.getElementById('view-profile');
             const projectsView = document.getElementById('view-projects');
             const blogView = document.getElementById('view-blog');
@@ -346,10 +348,30 @@
         // 当前渲染的视图（用于 hashchange 时判断是否仅切换文章）
         let currentRoute = null;
 
+        // 主页是否配置了自定义背景（由 site-config.json 决定）
+        let homeBgConfigured = false;
+
+        // 加载站点个性化配置：主页自定义背景（Discord 风格 splash）
+        // site-config.json 不存在或字段为空时自动回退为默认纯色暗夜背景
+        function loadSiteConfig() {
+            return fetch('site-config.json')
+                .then(res => res.ok ? res.json() : null)
+                .then(cfg => {
+                    const bg = cfg && cfg.homeBackground;
+                    if (!bg || (!bg.image && !bg.gradient)) return;
+                    const body = document.body;
+                    body.style.setProperty('--bg-image', bg.gradient || `url("${bg.image}")`);
+                    body.style.setProperty('--bg-overlay', String(typeof bg.overlay === 'number' ? bg.overlay : 0.45));
+                    body.style.setProperty('--bg-blur', String(typeof bg.blur === 'number' ? bg.blur : 0) + 'px');
+                    homeBgConfigured = true;
+                })
+                .catch(() => {});
+        }
+
         // 初始化：加载语言设置与项目数据，并按当前 hash 渲染对应视图
         window.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
-            loadProjects().then(() => renderView(parseHash().route));
+            loadSiteConfig().then(loadProjects).then(() => renderView(parseHash().route));
         });
 
         window.addEventListener('hashchange', () => {

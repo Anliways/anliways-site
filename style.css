@@ -805,3 +805,27 @@
                 scroll-behavior: auto !important;
             }
         }
+
+        /* ==================== 11. 自定义主页背景（Discord 风格 splash） ==================== */
+        /* 由 main.js 读取 site-config.json 后设置 --bg-image / --bg-overlay / --bg-blur
+           仅在主页视图（body.bg-custom）时显示；image 字段也可填 CSS 渐变 */
+        body.bg-custom::before {
+            content: "";
+            position: fixed; inset: 0; z-index: -2;
+            background: var(--bg-image) center / cover no-repeat;
+            filter: blur(var(--bg-blur, 0px));
+            transform: scale(1.03); /* 模糊时防止边缘露白 */
+        }
+        body.bg-custom::after {
+            content: "";
+            position: fixed; inset: 0; z-index: -1;
+            background: rgba(0, 0, 0, var(--bg-overlay, 0.45));
+            pointer-events: none;
+        }
+        /* 主页卡片升级为毛玻璃 */
+        body.bg-custom .profile-card {
+            background: rgba(30, 30, 30, 0.72);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
