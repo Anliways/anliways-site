@@ -50,7 +50,16 @@ python3 -m http.server 8080
 - `https://www.anliways.com/#/` — 主页菜单
 - `https://www.anliways.com/#/projects` — 项目橱窗
 - `https://www.anliways.com/#/blog` — 博客文章
+- `https://www.anliways.com/#/blog/<文章id>` — 单篇文章（如 `#/blog/test-article`）
 - `https://www.anliways.com/#/about` — 关于我
+
+## RSS 订阅
+
+订阅地址：`https://www.anliways.com/rss.xml`（页面 head 中已做自动发现）。
+
+`rss.xml` 由 `scripts/generate-rss.js` 根据 `posts.json` 自动生成，**无需手动维护**：
+每次 push 到 main 后，GitHub Actions 会先校验内容，再重新生成 rss.xml；若有变化会以
+`github-actions[bot]` 身份自动提交回仓库。新增文章后 1-2 分钟内订阅源即会更新。
 
 ## 部署
 

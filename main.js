@@ -1,7 +1,6 @@
         // 当前语言标识符: 'zh' 或 'en'
         let currentLang = localStorage.getItem('site_lang') || 'zh';
 
-        // 支持中英文多语言的项目数据
         // 项目数据改为从 projects.json 异步加载（见 loadProjects）
         let projectsData = [];
         let projectsLoaded = null;
@@ -219,6 +218,9 @@
 
             const article = blogData.find(b => b.id === articleId);
             if (article) {
+                // 静默同步地址栏为单篇文章链接（replaceState 不触发 hashchange）
+                try { history.replaceState(null, '', `#/blog/${encodeURIComponent(articleId)}`); } catch (e) {}
+
                 document.getElementById('pm-title').innerText = article.title;
                 document.getElementById('pm-date').innerText = article.date;
                 document.getElementById('pm-author').innerText = article.author || "anliways";
@@ -244,20 +246,24 @@
             }
         }
 
-        // hash 路由：#/ 主页、#/projects、#/blog、#/about
+        // hash 路由：#/ 主页、#/projects、#/blog、#/blog/<文章id>、#/about
         const ROUTES = ['profile', 'projects', 'blog', 'about'];
 
-        function routeFromHash() {
-            const h = location.hash.replace(/^#\/?/, '').toLowerCase();
-            return ROUTES.includes(h) ? h : 'profile';
+        // 解析当前 hash，返回 { route, articleId }
+        function parseHash() {
+            const raw = location.hash.replace(/^#\/?/, '');
+            const segs = raw.split('/');
+            const route = ROUTES.includes(segs[0].toLowerCase()) ? segs[0].toLowerCase() : 'profile';
+            return {
+                route: route,
+                articleId: (route === 'blog' && segs[1]) ? segs.slice(1).join('/') : null
+            };
         }
 
         // 视图切换入口（由页面 onclick 调用）：更新 hash，由 hashchange 统一渲染
         function toggleView(target) {
             const targetHash = target === 'profile' ? '#/' : `#/${target}`;
-            if (routeFromHash() === target && target !== 'profile') {
-                renderView(target);
-            } else if (target === 'profile' && (location.hash === '' || location.hash === '#' || location.hash === '#/')) {
+            if (parseHash().route === target) {
                 renderView(target);
             } else {
                 location.hash = targetHash;
@@ -266,6 +272,7 @@
 
         // 页面视图切换逻辑
         function renderView(target) {
+            currentRoute = target;
             const profileView = document.getElementById('view-profile');
             const projectsView = document.getElementById('view-projects');
             const blogView = document.getElementById('view-blog');
@@ -297,12 +304,19 @@
                 document.body.classList.add('has-navbar');
                 document.getElementById('nav-link-blog').classList.add('active');
 
+                // 若 URL 带文章 id（#/blog/<id>），优先打开该文章
+                const routeArticleId = parseHash().articleId;
                 fetch('posts.json')
                     .then(res => res.json())
                     .then(data => {
                         blogData = data;
                         initBlogSidebar();
-                        if (blogData.length > 0) selectArticle(blogData[0].id);
+                        const hasRouteArticle = routeArticleId && blogData.some(b => b.id === routeArticleId);
+                        if (hasRouteArticle) {
+                            selectArticle(routeArticleId);
+                        } else if (blogData.length > 0) {
+                            selectArticle(blogData[0].id);
+                        }
                     })
                     .catch(err => {
                         document.getElementById('pm-title').innerText = currentLang === 'zh' ? "加载失败" : "Failed to load";
@@ -328,12 +342,22 @@
             updateDocumentTitle();
         }
 
+        // 当前渲染的视图（用于 hashchange 时判断是否仅切换文章）
+        let currentRoute = null;
+
         // 初始化：加载语言设置与项目数据，并按当前 hash 渲染对应视图
         window.addEventListener('DOMContentLoaded', () => {
             applyLanguage();
-            loadProjects().then(() => renderView(routeFromHash()));
+            loadProjects().then(() => renderView(parseHash().route));
         });
 
         window.addEventListener('hashchange', () => {
-            renderView(routeFromHash());
+            const t = parseHash();
+            // 同一博客视图内切换文章：仅刷新正文，不重新渲染整个视图
+            if (t.route === 'blog' && currentRoute === 'blog' && t.articleId
+                && blogData.some(b => b.id === t.articleId)) {
+                selectArticle(t.articleId);
+                return;
+            }
+            renderView(t.route);
         });

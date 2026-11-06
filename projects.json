@@ -9,7 +9,7 @@
     "subItems": [
       { "title_zh": "技术周刊", "title_en": "Tech Weekly", "desc_zh": "前沿技术与开发动态", "desc_en": "Frontier tech & dev news", "icon": "ri-newspaper-line", "link": "https://telegra.ph" },
       { "title_zh": "思考随笔", "title_en": "Essays & Thoughts", "desc_zh": "个人感悟与行业观察", "desc_en": "Reflections & observations", "icon": "ri-draft-line", "link": "https://telegra.ph" },
-      { "title_zh": "RSS 订阅", "title_en": "RSS Feed", "desc_zh": "实时订阅最新发布", "desc_en": "Subscribe to updates", "icon": "ri-rss-line", "link": "https://telegra.ph" }
+      { "title_zh": "RSS 订阅", "title_en": "RSS Feed", "desc_zh": "实时订阅最新发布", "desc_en": "Subscribe to updates", "icon": "ri-rss-line", "link": "https://www.anliways.com/rss.xml" }
     ]
   },
   {
