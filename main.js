@@ -93,7 +93,8 @@
                 const title = project[`title_${currentLang}`] || project.title_zh;
                 const item = document.createElement('button');
                 item.type = 'button';
-                item.className = 'project-item';
+                // 未上线项目加标记，侧边栏中以小圆点区分
+                item.className = 'project-item' + (projectHasRealLink(project) ? '' : ' is-wip');
                 item.id = `pj-item-${project.id}`;
                 item.onclick = () => handleProjectClick(project);
                 item.innerHTML = `
@@ -169,22 +170,18 @@
         }
 
         function handleProjectClick(project) {
-            const title = project[`title_${currentLang}`] || project.title_zh;
+            selectProject(project.id);
             if (window.innerWidth <= 850) {
-                // 移动端：首个子项有真实链接则直接跳转，否则提示"即将上线"
-                const firstLink = (project.subItems && project.subItems[0] && project.subItems[0].link && project.subItems[0].link !== '#')
-                    ? project.subItems[0].link
-                    : null;
-                if (firstLink) {
-                    window.open(firstLink, '_blank');
-                } else {
-                    alert(currentLang === 'zh'
-                        ? `「${title}」即将上线，敬请期待！`
-                        : `"${title}" is coming soon. Stay tuned!`);
-                }
-            } else {
-                selectProject(project.id);
+                // 移动端：进入详情屏，由返回按钮回到列表
+                document.getElementById('view-projects').classList.add('show-detail');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+        }
+
+        // 移动端详情屏返回项目列表
+        function backToProjects() {
+            document.getElementById('view-projects').classList.remove('show-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function initBlogSidebar() {
@@ -292,6 +289,8 @@
 
             if (target === 'projects') {
                 projectsView.classList.remove('hidden');
+                // 每次进入项目页回到列表态（移动端两屏结构）
+                projectsView.classList.remove('show-detail');
                 topNavbar.classList.add('nav-visible');
                 globalFooter.classList.remove('hidden');
                 document.body.classList.add('has-navbar');

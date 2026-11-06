@@ -54,7 +54,7 @@
         .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: rgba(255, 255, 255, 0.87); }
         .nav-right-group { display: flex; align-items: center; gap: 24px; }
         .nav-links { display: flex; gap: 24px; }
-        .nav-link { font-size: 14px; color: #8E8E93; text-decoration: none; font-weight: 500; cursor: pointer; padding: 4px 0; transition: color 0.2s ease; background: none; border: 0; font-family: inherit; }
+        .nav-link { font-size: 14px; color: #8E8E93; text-decoration: none; font-weight: 500; cursor: pointer; padding: 4px 0; transition: color 0.2s ease; background: none; border: 0; font-family: inherit; white-space: nowrap; }
         .nav-link:hover, .nav-link.active { color: #0a84ff; }
 
         /* ==================== 3. 视图 1：个人主页菜单卡片 ==================== */
@@ -87,23 +87,23 @@
         /* ==================== 4. 视图 2：项目橱窗 ==================== */
         .projects-split-container {
             display: flex;
-            width: 100%; max-width: 1140px;
-            padding: 0 20px; gap: 28px;
+            width: 100%; max-width: 1160px;
+            padding: 0 20px; gap: 24px;
             animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1);
             margin-top: 104px; margin-bottom: 50px;
             align-items: flex-start;
         }
 
         .projects-sidebar {
-            flex: 0 0 320px;
+            flex: 0 0 288px;
             background: #1E1E1E;
-            padding: 24px;
+            padding: 20px;
             border-radius: 24px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
             max-height: calc(100vh - 150px);
             overflow-y: auto;
         }
@@ -112,7 +112,8 @@
             display: flex;
             align-items: center;
             position: relative;
-            padding-bottom: 8px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .projects-sidebar .back-btn {
@@ -124,17 +125,17 @@
         .projects-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .project-item {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
+            gap: 12px;
+            padding: 11px 14px;
             background: #2c2c2e;
             border: 1px solid transparent;
-            border-radius: 16px;
+            border-radius: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: left;
@@ -147,10 +148,25 @@
             border-color: rgba(255, 255, 255, 0.15);
         }
 
+        /* 选中态：左侧蓝色指示条 + 轻微蓝色投影，取代整块描边 */
         .project-item.active {
             background: #2c2c2e;
-            border-color: #0a84ff;
-            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.15);
+            border-color: rgba(10, 132, 255, 0.35);
+            box-shadow: inset 3px 0 0 #0a84ff, 0 4px 12px rgba(10, 132, 255, 0.12);
+        }
+
+        /* 未上线项目：标题降权 + 右侧小圆点，与可用项目一眼区分 */
+        .project-item.is-wip .project-item-title {
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .project-item.is-wip::after {
+            content: "";
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: #8E8E93;
+            margin-left: auto;
+            flex-shrink: 0;
         }
 
         .project-item-icon {
@@ -186,55 +202,74 @@
         .projects-detail-panel {
             flex: 1;
             background: #1E1E1E;
-            padding: 40px;
+            padding: 32px 36px;
             border-radius: 24px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            min-height: 450px;
+            min-height: 460px;
             max-height: calc(100vh - 150px);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
 
+        /* 移动端详情屏返回按钮（桌面端隐藏） */
+        .detail-back-btn {
+            display: none;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: 0;
+            padding: 0 0 16px 0;
+            color: #8E8E93;
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            align-self: flex-start;
+        }
+        .detail-back-btn:hover { color: #0a84ff; }
+        .detail-back-btn i { font-size: 18px; }
+
         .detail-header-group {
             display: flex;
             align-items: center;
-            gap: 20px;
-            margin-bottom: 24px;
-            padding-bottom: 24px;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .detail-large-icon {
-            width: 64px;
-            height: 64px;
+            width: 56px;
+            height: 56px;
             background: #2c2c2e;
-            border-radius: 18px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: 28px;
             color: rgba(255, 255, 255, 0.87);
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            flex-shrink: 0;
         }
 
         .detail-title {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
             color: rgba(255, 255, 255, 0.87);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.4px;
         }
 
         .detail-desc {
             font-size: 15px;
             color: rgba(255, 255, 255, 0.7);
-            line-height: 1.8;
-            margin-bottom: 32px;
+            line-height: 1.75;
+            max-width: 640px;
+            margin-bottom: 26px;
         }
 
         .integrated-section {
-            padding-top: 24px;
+            padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
 
@@ -242,27 +277,30 @@
             font-size: 13px;
             font-weight: 600;
             color: #8E8E93;
-            letter-spacing: 0.5px;
-            margin-bottom: 16px;
+            letter-spacing: 0.3px;
+            margin-bottom: 14px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
+        /* 子项固定两列网格，卡片等高、箭头固定列宽，避免长短标题造成的错位 */
         .integrated-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
         }
 
         .integrated-card {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 18px;
+            gap: 12px;
+            padding: 14px 16px;
+            min-height: 72px;
             background: #2c2c2e;
             border: 1px solid transparent;
-            border-radius: 16px;
+            border-radius: 14px;
             text-decoration: none;
             color: rgba(255, 255, 255, 0.87);
             transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
@@ -273,7 +311,7 @@
             background: #3a3a3c;
             border-color: rgba(255, 255, 255, 0.15);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
 
         .integrated-card-left {
@@ -691,14 +729,14 @@
             .projects-split-container {
                 flex-direction: column;
                 background: #1E1E1E;
-                width: calc(100% - 40px);
-                max-width: 580px;
-                padding: 40px 32px;
+                width: calc(100% - 32px);
+                max-width: 560px;
+                padding: 24px 20px;
                 border-radius: 24px;
                 box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
                 border: 1px solid rgba(255, 255, 255, 0.05);
-                margin-top: 104px;
-                margin-bottom: 50px;
+                margin-top: 96px;
+                margin-bottom: 40px;
                 gap: 0;
             }
             .projects-sidebar {
@@ -711,45 +749,64 @@
                 max-height: none;
                 overflow: visible;
             }
+            .projects-sidebar .card-header { padding-bottom: 12px; }
+            /* 移动端列表改为单列行式布局：图标 + 标题 + 状态点，最易点按 */
             .projects-list {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 20px;
-                margin-top: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 14px;
             }
             .project-item {
-                flex-direction: column;
-                justify-content: center;
-                padding: 24px 12px;
-                border-radius: 20px;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 12px 14px;
+                border-radius: 14px;
                 gap: 12px;
-                text-align: center;
+                text-align: left;
             }
             .project-item-icon {
-                width: 56px;
-                height: 56px;
-                border-radius: 16px;
-                font-size: 26px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            }
-            .project-item-title {
-                font-size: 13px;
-            }
-            .project-item.active {
-                background: #2c2c2e;
-                border-color: transparent;
+                width: 38px;
+                height: 38px;
+                border-radius: 10px;
+                font-size: 19px;
                 box-shadow: none;
             }
+            .project-item-title { font-size: 14.5px; }
+            .project-item.active {
+                background: #2c2c2e;
+                border-color: rgba(10, 132, 255, 0.35);
+                box-shadow: inset 3px 0 0 #0a84ff;
+            }
             .project-item.active .project-item-icon {
-                background: #3a3a3c;
-                color: rgba(255, 255, 255, 0.87);
+                background: #0a84ff;
+                color: #ffffff;
             }
             .project-item.active .project-item-title {
-                color: rgba(255, 255, 255, 0.87);
+                color: #0a84ff;
             }
+
+            /* 移动端改为「列表 ⇄ 详情」两屏结构，详情不再被隐藏 */
             .projects-detail-panel {
                 display: none;
+                padding: 0;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                min-height: 0;
+                max-height: none;
+                overflow: visible;
             }
+            .projects-split-container.show-detail .projects-sidebar { display: none; }
+            .projects-split-container.show-detail .projects-detail-panel { display: flex; }
+            .detail-back-btn { display: inline-flex; }
+            .detail-header-group { gap: 14px; margin-bottom: 16px; padding-bottom: 16px; }
+            .detail-large-icon { width: 48px; height: 48px; border-radius: 14px; font-size: 24px; }
+            .detail-title { font-size: 22px; }
+            .detail-desc { font-size: 14.5px; margin-bottom: 20px; }
+            .integrated-grid { grid-template-columns: 1fr; gap: 10px; }
+            .integrated-card { min-height: 0; padding: 14px; }
+            .integrated-card:hover { transform: none; box-shadow: none; }
 
             .blog-split-container { flex-direction: column; align-items: stretch; gap: 20px; margin-top: 84px; }
             /* 移动端：文章列表改为横向滑动卡片，避免纵向堆叠拥挤 */
@@ -782,13 +839,14 @@
 
         @media (max-width: 640px) { .nav-container { padding: 0 24px; } .nav-links { gap: 16px; } .brand-name { display: none; } }
         @media (max-width: 500px) {
-            .projects-list { grid-template-columns: repeat(2, 1fr); }
             .socials-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         /* ==================== 9. "即将上线"标记样式 ==================== */
-        .integrated-card.wip { cursor: default; opacity: 0.6; }
-        .integrated-card.wip:hover { background: #2c2c2e; border-color: transparent; box-shadow: none; transform: none; }
+        /* 未上线：虚线边框弱化，但不降低文字可读性 */
+        .integrated-card.wip { cursor: default; background: rgba(44, 44, 46, 0.55); border-style: dashed; border-color: rgba(255, 255, 255, 0.14); }
+        .integrated-card.wip .integrated-card-title { color: rgba(255, 255, 255, 0.72); }
+        .integrated-card.wip:hover { background: rgba(44, 44, 46, 0.55); border-color: rgba(255, 255, 255, 0.14); box-shadow: none; transform: none; }
         .integrated-card.wip:hover .integrated-card-icon { color: #8E8E93; }
         .wip-badge { font-size: 11px; font-weight: 500; color: #8E8E93; background: #3a3a3c; padding: 4px 10px; border-radius: 12px; white-space: nowrap; flex-shrink: 0; }
         .detail-title .wip-badge { vertical-align: middle; margin-left: 10px; font-size: 12px; }
