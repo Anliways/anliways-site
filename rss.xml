@@ -5,14 +5,14 @@
     <link>https://www.anliways.com</link>
     <description>anliways 的个人博客：技术见解、行业观察与深度思考随笔。</description>
     <language>zh-CN</language>
-    <lastBuildDate>Fri, 06 Nov 2026 01:36:09 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 06 Nov 2026 01:45:44 GMT</lastBuildDate>
     <atom:link href="https://www.anliways.com/rss.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>我的第一篇动态测试文章</title>
       <link>https://www.anliways.com/#/blog/test-article</link>
       <guid isPermaLink="false">anliways-post-test-article</guid>
       <pubDate>Fri, 10 Jul 2026 00:00:00 GMT</pubDate>
-      
+      <description>第一篇测试文章，用于验证 Markdown 实时加载、文章路由与 RSS 订阅链路。</description>
     </item>
   </channel>
 </rss>

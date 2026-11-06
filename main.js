@@ -204,6 +204,7 @@
                 item.innerHTML = `
                     <span class="sidebar-item-title">${article.title}</span>
                     <span class="sidebar-item-date">${article.date}</span>
+                    ${article.summary ? `<span class="sidebar-item-summary">${article.summary}</span>` : ''}
                 `;
                 container.appendChild(item);
             });

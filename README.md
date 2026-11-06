@@ -11,6 +11,8 @@ anliways.com 的源码仓库。零依赖、纯静态个人主页：单页应用�
 ├── projects.json           # 「项目橱窗」数据（与代码解耦，改这里即可）
 ├── posts.json              # 博客文章列表
 ├── posts/                  # 文章 Markdown 正文（文件名 = 文章 id）
+├── assets/
+│   └── og-image.png        # 社交分享图（1200×630）
 ├── favicon.svg             # 站点图标
 └── scripts/
     └── validate-posts.js   # 内容数据校验脚本
@@ -28,6 +30,9 @@ anliways.com 的源码仓库。零依赖、纯静态个人主页：单页应用�
 ```
 
 3. 提交前运行 `node scripts/validate-posts.js` 自检（GitHub Actions 也会自动校验）。
+
+`posts.json` 支持的可选字段：`summary`（一行摘要，展示在侧边栏文章卡片上并写入 RSS）、
+`author`（默认 anliways）、`fullUrl`（外链文章地址，RSS 条目优先使用它）。
 
 ### 修改「项目橱窗」
 

@@ -4,6 +4,7 @@
     "title": "我的第一篇动态测试文章",
     "date": "2026年7月10日",
     "author": "anliways",
+    "summary": "第一篇测试文章，用于验证 Markdown 实时加载、文章路由与 RSS 订阅链路。",
     "fullUrl": "https://telegra.ph"
   }
 ]

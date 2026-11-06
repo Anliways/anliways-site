@@ -347,6 +347,7 @@
         .blog-sidebar-item.active .sidebar-item-title { color: #0a84ff; }
         .sidebar-item-title { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.87); line-height: 1.4; }
         .sidebar-item-date { font-size: 12px; color: #8E8E93; }
+        .sidebar-item-summary { font-size: 12px; color: #8E8E93; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         .blog-preview-panel { flex: 1; background: #1E1E1E; padding: 40px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); min-height: 450px; display: flex; flex-direction: column; max-height: calc(100vh - 150px); overflow-y: auto; }
         .preview-title { font-size: 26px; font-weight: 700; line-height: 1.3; margin-bottom: 12px; letter-spacing: -0.5px; color: rgba(255, 255, 255, 0.87); }
@@ -751,7 +752,10 @@
             }
 
             .blog-split-container { flex-direction: column; align-items: stretch; gap: 20px; margin-top: 84px; }
-            .blog-sidebar { flex: none; max-height: 240px; }
+            /* 移动端：文章列表改为横向滑动卡片，避免纵向堆叠拥挤 */
+            .blog-sidebar { flex: none; max-height: none; overflow: visible; }
+            #sidebar-list-container { display: flex; flex-direction: row; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+            .blog-sidebar-item { min-width: 230px; max-width: 230px; flex-shrink: 0; scroll-snap-align: start; }
             .blog-preview-panel { padding: 28px 24px; max-height: none; }
             .preview-title { font-size: 22px; }
 
@@ -788,3 +792,16 @@
         .integrated-card.wip:hover .integrated-card-icon { color: #8E8E93; }
         .wip-badge { font-size: 11px; font-weight: 500; color: #8E8E93; background: #3a3a3c; padding: 4px 10px; border-radius: 12px; white-space: nowrap; flex-shrink: 0; }
         .detail-title .wip-badge { vertical-align: middle; margin-left: 10px; font-size: 12px; }
+
+        /* ==================== 10. 无障碍支持 ==================== */
+        /* 键盘导航焦点样式 */
+        :focus-visible { outline: 2px solid #0a84ff; outline-offset: 2px; }
+        /* 用户偏好减少动态效果时关闭过渡与动画 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
