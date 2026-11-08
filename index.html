@@ -27,6 +27,9 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- XSS 消毒：marked 输出必须经过 DOMPurify 再写入页面 -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <!-- highlight.js：项目橱窗源码预览的语法高亮 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <script src="main.js" defer></script>
 </head>
@@ -145,6 +148,23 @@
                         <span data-zh="集成服务 / 直达入口" data-en="Integrated Services / Quick Links">集成服务 / 直达入口</span>
                     </div>
                     <div id="integrated-grid" class="integrated-grid"></div>
+                </div>
+
+                <!-- 源码预览（仅 CodeLeaf 项目显示）：文件标签 + 进度条 + 代码区 -->
+                <div id="code-preview-section" class="integrated-section hidden">
+                    <div class="code-preview-header">
+                        <div class="integrated-section-title">
+                            <i class="ri-code-box-line"></i>
+                            <span data-zh="源码预览" data-en="Source Preview">源码预览</span>
+                        </div>
+                        <div id="code-file-tabs" class="code-file-tabs" role="tablist" aria-label="选择源码文件"></div>
+                    </div>
+                    <div class="code-viewer-wrap">
+                        <div id="code-progress" class="code-progress hidden" role="progressbar" aria-label="代码加载进度">
+                            <div id="code-progress-bar" class="code-progress-bar"></div>
+                        </div>
+                        <pre class="code-viewer"><code id="code-viewer-content"></code></pre>
+                    </div>
                 </div>
             </div>
         </div>

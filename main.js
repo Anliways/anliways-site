@@ -141,7 +141,140 @@
                 const idx = projectsData.findIndex(p => p.id === projectId);
                 const counter = document.getElementById('pj-counter');
                 if (counter) counter.textContent = `${idx + 1} / ${projectsData.length}`;
+
+                // 仅 CodeLeaf 项目显示源码预览，其余项目隐藏该区块
+                const codeSection = document.getElementById('code-preview-section');
+                if (codeSection) {
+                    if (projectId === 'codeleaf') {
+                        codeSection.classList.remove('hidden');
+                        initCodePreview();
+                    } else {
+                        codeSection.classList.add('hidden');
+                    }
+                }
             }
+        }
+
+        // ==================== 源码预览（CodeLeaf） ====================
+        // 文件清单：来自 Anliways/codeleaf 仓库，经 jsDelivr CDN 拉取（CORS 开放）
+        const CODE_PREVIEW_FILES = [
+            { name: 'App.tsx', path: 'src/App.tsx', lang: 'typescript' },
+            { name: 'routes.tsx', path: 'src/routes.tsx', lang: 'typescript' },
+            { name: 'parser.ts', path: 'src/lib/parser.ts', lang: 'typescript' },
+            { name: 'render.tsx', path: 'src/lib/render.tsx', lang: 'typescript' }
+        ];
+        const CODE_CDN_BASE = 'https://cdn.jsdelivr.net/gh/Anliways/codeleaf@main/';
+        const codeCache = new Map();   // path -> 源码文本，避免重复请求
+        let codeCurrentFile = null;
+
+        function initCodePreview() {
+            const tabs = document.getElementById('code-file-tabs');
+            if (!tabs) return;
+            tabs.innerHTML = '';
+            CODE_PREVIEW_FILES.forEach((file, i) => {
+                const tab = document.createElement('button');
+                tab.type = 'button';
+                tab.className = 'code-file-tab';
+                tab.id = `code-tab-${file.name}`;
+                tab.setAttribute('role', 'tab');
+                tab.textContent = file.name;
+                tab.onclick = () => loadCodeFile(file);
+                tabs.appendChild(tab);
+                if (i === 0) tab.classList.add('active');
+            });
+            // 默认加载第一个文件（有缓存则瞬时渲染）
+            loadCodeFile(CODE_PREVIEW_FILES[0], true);
+        }
+
+        async function loadCodeFile(file, isInitial = false) {
+            if (codeCurrentFile === file.name && !isInitial) return;
+            codeCurrentFile = file.name;
+            document.querySelectorAll('.code-file-tab').forEach(t =>
+                t.classList.toggle('active', t.textContent === file.name));
+
+            const progressBar = document.getElementById('code-progress-bar');
+            const progressWrap = document.getElementById('code-progress');
+            const codeEl = document.getElementById('code-viewer-content');
+
+            // 缓存命中：直接渲染，不出进度条
+            if (codeCache.has(file.path)) {
+                renderCode(codeEl, codeCache.get(file.path), file.lang);
+                return;
+            }
+
+            // 显示进度条并开始加载
+            progressWrap.classList.remove('hidden', 'done');
+            progressBar.style.width = '0%';
+            progressWrap.removeAttribute('aria-valuenow');
+
+            try {
+                const text = await fetchCodeWithProgress(file.path, (ratio, known) => {
+                    if (known) {
+                        progressWrap.classList.remove('indeterminate');
+                        const pct = Math.round(ratio * 100);
+                        progressBar.style.width = pct + '%';
+                        progressWrap.setAttribute('aria-valuenow', String(pct));
+                    } else {
+                        // 无 content-length（gzip 流）：切换不确定进度模式
+                        progressWrap.classList.add('indeterminate');
+                    }
+                });
+
+                codeCache.set(file.path, text);
+                // 加载完成 → 满格 → 在下一帧执行高亮渲染（避免阻塞进度条动画）
+                progressBar.style.width = '100%';
+                requestAnimationFrame(() => {
+                    renderCode(codeEl, text, file.lang);
+                    // 渲染完成后延迟淡出并隐藏进度条
+                    setTimeout(() => {
+                        progressWrap.classList.add('done');
+                        setTimeout(() => progressWrap.classList.add('hidden'), 350);
+                    }, 180);
+                });
+            } catch (err) {
+                progressWrap.classList.add('hidden');
+                codeEl.textContent = currentLang === 'zh'
+                    ? '源码加载失败，请检查网络后重试。'
+                    : 'Failed to load source code. Please check your network.';
+            }
+        }
+
+        // 流式读取并回报进度：known=true 时可计算百分比，否则为不确定长度
+        async function fetchCodeWithProgress(path, onProgress) {
+            const res = await fetch(CODE_CDN_BASE + path, { cache: 'force-cache' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const total = parseInt(res.headers.get('content-length') || '0', 10);
+
+            if (!res.body || !total) {
+                // 无法流式统计：直接读全文，进度走不确定模式
+                onProgress(0, false);
+                const text = await res.text();
+                onProgress(1, true);
+                return text;
+            }
+
+            const reader = res.body.getReader();
+            const chunks = [];
+            let received = 0;
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                onProgress(received / total, true);
+            }
+            const blob = new Blob(chunks);
+            return await blob.text();
+        }
+
+        function renderCode(codeEl, text, lang) {
+            if (window.hljs) {
+                try {
+                    codeEl.innerHTML = hljs.highlight(text, { language: lang }).value;
+                    return;
+                } catch (_) { /* 语言识别失败则降级为纯文本 */ }
+            }
+            codeEl.textContent = text;
         }
 
         // 轮播式切换：dir = 1 下一个 / -1 上一个，循环切换，带方向感过渡动画
