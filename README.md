@@ -16,6 +16,8 @@ anliways.com 的源码仓库。零依赖、纯静态个人主页：单页应用�
 │   └── bg.jpg              # 主页自定义背景（Discord 风格 splash）
 ├── site-config.json        # 站点个性化配置（主页背景等）
 ├── favicon.svg             # 站点图标
+├── codeleaf/
+│   └── index.html          # 「编码叶」编辑器独立应用（访问 /codeleaf/）
 └── scripts/
     └── validate-posts.js   # 内容数据校验脚本
 ```
@@ -83,6 +85,16 @@ python3 -m http.server 8080
 
 背景仅在主页视图显示；进入项目橱窗、博客、关于我时自动恢复纯色，保证阅读体验。
 主页名片卡片会自动切换为半透明毛玻璃（backdrop blur）效果。
+
+## 集成应用：编码叶 CodeLeaf
+
+`https://www.anliways.com/codeleaf/` — 实时文本编辑与预览工具（React + Vite 单文件构建）。
+
+- 入口在「项目橱窗」的 `projects.json` 中维护（id: `codeleaf`）；
+- `codeleaf/index.html` 为完全自包含的单文件产物（JS/CSS 全部内联，无外部资源依赖），
+  直接从 [Anliways/codeleaf](https://github.com/Anliways/codeleaf) 的 Pages 构建产物
+  下载覆盖即可升级，无需改动主站任何代码；
+- 该子目录是独立应用，与主站的 hash 路由、样式互不影响。
 
 ## RSS 订阅
 

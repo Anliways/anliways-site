@@ -13,6 +13,19 @@
     ]
   },
   {
+    "id": "codeleaf",
+    "title_zh": "编码叶 CodeLeaf",
+    "title_en": "CodeLeaf",
+    "icon": "ri-quill-pen-line",
+    "desc_zh": "实时文本编辑与预览工具：左侧编辑区支持加粗、颜色、字号、对齐、表格、代码块与图片，右侧同步渲染排版效果，可导出 PNG 长图 / Markdown / TXT。",
+    "desc_en": "A real-time editor with live preview: rich text styling, tables, code blocks and images on the left, rendered layout on the right. Export as PNG / Markdown / TXT.",
+    "subItems": [
+      { "title_zh": "开始使用", "title_en": "Launch App", "desc_zh": "打开编辑器（PC 双栏体验最佳）", "desc_en": "Open the editor (best on desktop)", "icon": "ri-play-circle-line", "link": "https://www.anliways.com/codeleaf/" },
+      { "title_zh": "源码仓库", "title_en": "Source Code", "desc_zh": "React + Vite + Tailwind 开源实现", "desc_en": "React + Vite + Tailwind source", "icon": "ri-github-line", "link": "https://github.com/Anliways/codeleaf" },
+      { "title_zh": "Pages 镜像", "title_en": "Pages Mirror", "desc_zh": "GitHub Pages 备用入口", "desc_en": "GitHub Pages fallback entry", "icon": "ri-global-line", "link": "https://anliways.github.io/codeleaf/" }
+    ]
+  },
+  {
     "id": "open-source",
     "title_zh": "开源主页",
     "title_en": "Open Source",
