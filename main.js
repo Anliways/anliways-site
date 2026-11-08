@@ -83,9 +83,13 @@
             const container = document.getElementById('projects-list-container');
             if (!container) return;
 
-            // 记住当前选中的项目ID，避免重绘后归位
+            // 记住当前选中的项目ID：优先 DOM 已选中项，其次 sessionStorage，最后首项
             const currentActive = document.querySelector('.project-item.active');
-            const activeId = currentActive ? currentActive.id.replace('pj-item-', '') : projectsData[0].id;
+            const savedId = sessionStorage.getItem('pj_selected_id');
+            const savedValid = savedId && projectsData.some(p => p.id === savedId);
+            const activeId = currentActive
+                ? currentActive.id.replace('pj-item-', '')
+                : (savedValid ? savedId : projectsData[0].id);
 
             container.innerHTML = '';
 
@@ -110,7 +114,14 @@
         function selectProject(projectId) {
             document.querySelectorAll('.project-item').forEach(el => el.classList.remove('active'));
             const activeItem = document.getElementById(`pj-item-${projectId}`);
-            if (activeItem) activeItem.classList.add('active');
+            if (activeItem) {
+                activeItem.classList.add('active');
+                // 通过切换器换项时保证侧边栏选中项可见
+                activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            // 持久化选中状态（跨视图切换/刷新保持）
+            sessionStorage.setItem('pj_selected_id', projectId);
 
             const project = projectsData.find(p => p.id === projectId);
             if (project) {
@@ -125,8 +136,71 @@
                 document.getElementById('pj-detail-title').innerHTML = title + wipBadge;
                 document.getElementById('pj-detail-desc').innerText = desc;
                 renderSubItems(project.subItems);
+
+                // 更新轮播计数器（1 / N）
+                const idx = projectsData.findIndex(p => p.id === projectId);
+                const counter = document.getElementById('pj-counter');
+                if (counter) counter.textContent = `${idx + 1} / ${projectsData.length}`;
             }
         }
+
+        // 轮播式切换：dir = 1 下一个 / -1 上一个，循环切换，带方向感过渡动画
+        function switchProject(dir) {
+            if (!projectsData.length) return;
+            const currentIdx = projectsData.findIndex(p =>
+                document.getElementById(`pj-item-${p.id}`)?.classList.contains('active'));
+            const nextIdx = ((currentIdx < 0 ? 0 : currentIdx) + dir + projectsData.length) % projectsData.length;
+            const nextProject = projectsData[nextIdx];
+
+            const content = document.getElementById('pj-detail-content');
+            if (content) {
+                // 重触发动画：先移除旧方向类
+                content.classList.remove('slide-from-right', 'slide-from-left');
+                // 强制回流以确保动画重新播放
+                void content.offsetWidth;
+                content.classList.add(dir === 1 ? 'slide-from-right' : 'slide-from-left');
+            }
+
+            selectProject(nextProject.id);
+
+            // 移动端：在详情屏内切换时保持在详情屏
+            if (window.innerWidth <= 850) {
+                document.getElementById('view-projects').classList.add('show-detail');
+            }
+        }
+
+        // 键盘 ← / → 快捷切换（仅在项目橱窗可见且未聚焦输入框时生效）
+        document.addEventListener('keydown', (e) => {
+            const projectsView = document.getElementById('view-projects');
+            if (!projectsView || projectsView.classList.contains('hidden')) return;
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+            if (e.key === 'ArrowRight') { switchProject(1); }
+            else if (e.key === 'ArrowLeft') { switchProject(-1); }
+        });
+
+        // 移动端详情屏左右滑动手势切换项目
+        (function initSwipe() {
+            let startX = 0, startY = 0, tracking = false;
+            document.addEventListener('touchstart', (e) => {
+                const view = document.getElementById('view-projects');
+                if (!view || view.classList.contains('hidden') || !view.classList.contains('show-detail')) return;
+                const t = e.touches[0];
+                startX = t.clientX; startY = t.clientY; tracking = true;
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const view = document.getElementById('view-projects');
+                if (!view || view.classList.contains('hidden')) return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX, dy = t.clientY - startY;
+                // 水平位移超过 60px 且明显大于垂直位移时视为滑动切换
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    switchProject(dx < 0 ? 1 : -1);
+                }
+            }, { passive: true });
+        })();
 
         function renderSubItems(subItems) {
             const container = document.getElementById('integrated-container');

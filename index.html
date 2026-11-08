@@ -126,15 +126,26 @@
                     <i class="ri-article-line"></i>
                 </div>
                 <h2 id="pj-detail-title" class="detail-title">项目名称</h2>
-            </div>
-            <p id="pj-detail-desc" class="detail-desc">项目详细介绍内容...</p>
-
-            <div id="integrated-container" class="integrated-section">
-                <div class="integrated-section-title">
-                    <i class="ri-apps-2-line"></i>
-                    <span data-zh="集成服务 / 直达入口" data-en="Integrated Services / Quick Links">集成服务 / 直达入口</span>
+                <div class="detail-switcher" role="group" aria-label="切换项目预览">
+                    <button type="button" class="detail-nav-btn" onclick="switchProject(-1)" aria-label="上一个项目">
+                        <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                    </button>
+                    <span id="pj-counter" class="detail-counter" aria-live="polite">1 / 1</span>
+                    <button type="button" class="detail-nav-btn" onclick="switchProject(1)" aria-label="下一个项目">
+                        <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <div id="integrated-grid" class="integrated-grid"></div>
+            </div>
+            <div id="pj-detail-content" class="detail-content">
+                <p id="pj-detail-desc" class="detail-desc">项目详细介绍内容...</p>
+
+                <div id="integrated-container" class="integrated-section">
+                    <div class="integrated-section-title">
+                        <i class="ri-apps-2-line"></i>
+                        <span data-zh="集成服务 / 直达入口" data-en="Integrated Services / Quick Links">集成服务 / 直达入口</span>
+                    </div>
+                    <div id="integrated-grid" class="integrated-grid"></div>
+                </div>
             </div>
         </div>
     </div>

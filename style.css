@@ -258,6 +258,74 @@
             font-weight: 700;
             color: rgba(255, 255, 255, 0.87);
             letter-spacing: -0.4px;
+            flex-shrink: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ==================== 项目预览切换器（轮播导航） ==================== */
+        .detail-switcher {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .detail-nav-btn {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2c2c2e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+        }
+
+        .detail-nav-btn:hover {
+            background: #3a3a3c;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .detail-nav-btn:active { transform: scale(0.92); }
+
+        .detail-counter {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8E8E93;
+            min-width: 52px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+            user-select: none;
+        }
+
+        /* 切换过渡动画：内容区按方向滑入 */
+        .detail-content { will-change: transform, opacity; }
+
+        @keyframes detailSlideFromRight {
+            from { opacity: 0; transform: translateX(28px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes detailSlideFromLeft {
+            from { opacity: 0; transform: translateX(-28px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        .detail-content.slide-from-right {
+            animation: detailSlideFromRight 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .detail-content.slide-from-left {
+            animation: detailSlideFromLeft 0.28s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .detail-desc {
@@ -800,9 +868,13 @@
             .projects-split-container.show-detail .projects-sidebar { display: none; }
             .projects-split-container.show-detail .projects-detail-panel { display: flex; }
             .detail-back-btn { display: inline-flex; }
-            .detail-header-group { gap: 14px; margin-bottom: 16px; padding-bottom: 16px; }
-            .detail-large-icon { width: 48px; height: 48px; border-radius: 14px; font-size: 24px; }
-            .detail-title { font-size: 22px; }
+            .detail-header-group { gap: 12px; margin-bottom: 16px; padding-bottom: 16px; flex-wrap: nowrap; }
+            .detail-large-icon { width: 44px; height: 44px; border-radius: 13px; font-size: 22px; flex-shrink: 0; }
+            .detail-title { font-size: 19px; }
+            /* 切换器在窄屏下略微收紧，保持单行不换行 */
+            .detail-switcher { gap: 0; margin-left: auto; }
+            .detail-nav-btn { width: 32px; height: 32px; border-radius: 9px; font-size: 19px; }
+            .detail-counter { min-width: 44px; font-size: 11px; }
             .detail-desc { font-size: 14.5px; margin-bottom: 20px; }
             .integrated-grid { grid-template-columns: 1fr; gap: 10px; }
             .integrated-card { min-height: 0; padding: 14px; }
