@@ -142,111 +142,94 @@
                 const counter = document.getElementById('pj-counter');
                 if (counter) counter.textContent = `${idx + 1} / ${projectsData.length}`;
 
-                // 仅 CodeLeaf 项目显示源码预览，其余项目隐藏该区块
-                const codeSection = document.getElementById('code-preview-section');
-                if (codeSection) {
+                // 仅 CodeLeaf 项目显示应用内嵌预览，其余项目隐藏该区块
+                const embedSection = document.getElementById('app-embed-section');
+                if (embedSection) {
                     if (projectId === 'codeleaf') {
-                        codeSection.classList.remove('hidden');
-                        initCodePreview();
+                        embedSection.classList.remove('hidden');
+                        initAppEmbed();
                     } else {
-                        codeSection.classList.add('hidden');
+                        embedSection.classList.add('hidden');
                     }
                 }
             }
         }
 
-        // ==================== 源码预览（CodeLeaf） ====================
-        // 文件清单：来自 Anliways/codeleaf 仓库，经 jsDelivr CDN 拉取（CORS 开放）
-        const CODE_PREVIEW_FILES = [
-            { name: 'App.tsx', path: 'src/App.tsx', lang: 'typescript' },
-            { name: 'routes.tsx', path: 'src/routes.tsx', lang: 'typescript' },
-            { name: 'parser.ts', path: 'src/lib/parser.ts', lang: 'typescript' },
-            { name: 'render.tsx', path: 'src/lib/render.tsx', lang: 'typescript' }
-        ];
-        const CODE_CDN_BASE = 'https://cdn.jsdelivr.net/gh/Anliways/codeleaf@main/';
-        const codeCache = new Map();   // path -> 源码文本，避免重复请求
-        let codeCurrentFile = null;
+        // ==================== 应用内嵌预览（CodeLeaf） ====================
+        // 同域 iframe 内嵌 /codeleaf/ 应用。流程：先流式预取 HTML（进度条实时百分比，
+        // 借助 HTTP 缓存使后续 iframe 加载近乎瞬时），再设置 iframe.src 加载真实 URL
+        // （blob URL 会让应用内 React Router 拿到无效路径导致空白页，故必须用真实地址）。
+        const APP_EMBED_URL = '/codeleaf/';
+        let appEmbedBooted = false;    // 整个会话只初始化一次，iframe 状态持续保留
+        let appEmbedPending = false;
 
-        function initCodePreview() {
-            const tabs = document.getElementById('code-file-tabs');
-            if (!tabs) return;
-            tabs.innerHTML = '';
-            CODE_PREVIEW_FILES.forEach((file, i) => {
-                const tab = document.createElement('button');
-                tab.type = 'button';
-                tab.className = 'code-file-tab';
-                tab.id = `code-tab-${file.name}`;
-                tab.setAttribute('role', 'tab');
-                tab.textContent = file.name;
-                tab.onclick = () => loadCodeFile(file);
-                tabs.appendChild(tab);
-                if (i === 0) tab.classList.add('active');
-            });
-            // 默认加载第一个文件（有缓存则瞬时渲染）
-            loadCodeFile(CODE_PREVIEW_FILES[0], true);
+        function initAppEmbed() {
+            const frame = document.getElementById('app-embed-frame');
+            if (!frame || appEmbedBooted || appEmbedPending) return;
+            appEmbedPending = true;
+            bootAppEmbed();
         }
 
-        async function loadCodeFile(file, isInitial = false) {
-            if (codeCurrentFile === file.name && !isInitial) return;
-            codeCurrentFile = file.name;
-            document.querySelectorAll('.code-file-tab').forEach(t =>
-                t.classList.toggle('active', t.textContent === file.name));
+        async function bootAppEmbed() {
+            const bar = document.getElementById('app-embed-bar');
+            const wrap = document.getElementById('app-embed-progress');
+            const status = document.getElementById('app-embed-status');
+            const frame = document.getElementById('app-embed-frame');
+            if (!bar || !wrap || !frame) return;
 
-            const progressBar = document.getElementById('code-progress-bar');
-            const progressWrap = document.getElementById('code-progress');
-            const codeEl = document.getElementById('code-viewer-content');
-
-            // 缓存命中：直接渲染，不出进度条
-            if (codeCache.has(file.path)) {
-                renderCode(codeEl, codeCache.get(file.path), file.lang);
-                return;
-            }
-
-            // 显示进度条并开始加载
-            progressWrap.classList.remove('hidden', 'done');
-            progressBar.style.width = '0%';
-            progressWrap.removeAttribute('aria-valuenow');
+            wrap.classList.remove('hidden', 'done');
+            bar.style.width = '0%';
+            wrap.removeAttribute('aria-valuenow');
 
             try {
-                const text = await fetchCodeWithProgress(file.path, (ratio, known) => {
+                // 第一步：流式预取（真实字节进度）；force-cache 使 iframe 二次请求命中缓存
+                await fetchWithProgress(APP_EMBED_URL, (ratio, known) => {
                     if (known) {
-                        progressWrap.classList.remove('indeterminate');
-                        const pct = Math.round(ratio * 100);
-                        progressBar.style.width = pct + '%';
-                        progressWrap.setAttribute('aria-valuenow', String(pct));
+                        wrap.classList.remove('indeterminate');
+                        // gzip 传输时 received 为解压字节数，可能超过压缩总长，钳制到 100
+                        const pct = Math.min(100, Math.round(ratio * 100));
+                        bar.style.width = pct + '%';
+                        wrap.setAttribute('aria-valuenow', String(pct));
                     } else {
-                        // 无 content-length（gzip 流）：切换不确定进度模式
-                        progressWrap.classList.add('indeterminate');
+                        // 无 content-length：切换不确定进度模式
+                        wrap.classList.add('indeterminate');
                     }
                 });
+                bar.style.width = '100%';
+                wrap.setAttribute('aria-valuenow', '100');
+                // 第二步：预取完成 → iframe 加载真实 URL（缓存命中，近乎瞬时）；
+                // 加载期间显示"应用启动中"提示
+                status.classList.remove('hidden');
 
-                codeCache.set(file.path, text);
-                // 加载完成 → 满格 → 在下一帧执行高亮渲染（避免阻塞进度条动画）
-                progressBar.style.width = '100%';
-                requestAnimationFrame(() => {
-                    renderCode(codeEl, text, file.lang);
-                    // 渲染完成后延迟淡出并隐藏进度条
-                    setTimeout(() => {
-                        progressWrap.classList.add('done');
-                        setTimeout(() => progressWrap.classList.add('hidden'), 350);
-                    }, 180);
-                });
+                frame.addEventListener('load', () => {
+                    requestAnimationFrame(() => {
+                        status.classList.add('hidden');
+                        wrap.classList.add('done');
+                        setTimeout(() => wrap.classList.add('hidden'), 350);
+                        frame.classList.add('ready');   // 触发淡入
+                    });
+                }, { once: true });
+                frame.src = APP_EMBED_URL;
+                appEmbedBooted = true;
             } catch (err) {
-                progressWrap.classList.add('hidden');
-                codeEl.textContent = currentLang === 'zh'
-                    ? '源码加载失败，请检查网络后重试。'
-                    : 'Failed to load source code. Please check your network.';
+                appEmbedPending = false;   // 允许下次进入重试
+                wrap.classList.add('hidden');
+                status.classList.add('hidden');
+                const msg = currentLang === 'zh'
+                    ? '应用加载失败，请检查网络后重试，或点击右上角「全屏打开」。'
+                    : 'Failed to load the app. Check your network or use "Open Fullscreen".';
+                frame.classList.add('failed');
+                frame.srcdoc = `<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:300px;font-family:-apple-system,sans-serif;color:#8E8E93;font-size:14px;text-align:center;padding:20px;">${msg}</div>`;
             }
         }
 
-        // 流式读取并回报进度：known=true 时可计算百分比，否则为不确定长度
-        async function fetchCodeWithProgress(path, onProgress) {
-            const res = await fetch(CODE_CDN_BASE + path, { cache: 'force-cache' });
+        // 流式读取并回报进度：known=true 时 ratio = 已接收/总长，否则长度未知
+        async function fetchWithProgress(url, onProgress) {
+            const res = await fetch(url, { cache: 'force-cache' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const total = parseInt(res.headers.get('content-length') || '0', 10);
 
             if (!res.body || !total) {
-                // 无法流式统计：直接读全文，进度走不确定模式
                 onProgress(0, false);
                 const text = await res.text();
                 onProgress(1, true);
@@ -263,18 +246,7 @@
                 received += value.length;
                 onProgress(received / total, true);
             }
-            const blob = new Blob(chunks);
-            return await blob.text();
-        }
-
-        function renderCode(codeEl, text, lang) {
-            if (window.hljs) {
-                try {
-                    codeEl.innerHTML = hljs.highlight(text, { language: lang }).value;
-                    return;
-                } catch (_) { /* 语言识别失败则降级为纯文本 */ }
-            }
-            codeEl.textContent = text;
+            return await new Blob(chunks).text();
         }
 
         // 轮播式切换：dir = 1 下一个 / -1 上一个，循环切换，带方向感过渡动画

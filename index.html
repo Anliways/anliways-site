@@ -27,9 +27,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- XSS 消毒：marked 输出必须经过 DOMPurify 再写入页面 -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-    <!-- highlight.js：项目橱窗源码预览的语法高亮 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <script src="main.js" defer></script>
 </head>
@@ -150,20 +147,27 @@
                     <div id="integrated-grid" class="integrated-grid"></div>
                 </div>
 
-                <!-- 源码预览（仅 CodeLeaf 项目显示）：文件标签 + 进度条 + 代码区 -->
-                <div id="code-preview-section" class="integrated-section hidden">
-                    <div class="code-preview-header">
+                <!-- 应用内嵌预览（仅 CodeLeaf 项目显示）：下载进度条 + 同域 iframe -->
+                <div id="app-embed-section" class="integrated-section hidden">
+                    <div class="app-embed-header">
                         <div class="integrated-section-title">
-                            <i class="ri-code-box-line"></i>
-                            <span data-zh="源码预览" data-en="Source Preview">源码预览</span>
+                            <i class="ri-apps-2-add-line"></i>
+                            <span data-zh="应用实时预览" data-en="Live App Preview">应用实时预览</span>
                         </div>
-                        <div id="code-file-tabs" class="code-file-tabs" role="tablist" aria-label="选择源码文件"></div>
+                        <a class="app-embed-open" href="/codeleaf/" target="_blank" rel="noopener">
+                            <i class="ri-fullscreen-line" aria-hidden="true"></i>
+                            <span data-zh="全屏打开" data-en="Open Fullscreen">全屏打开</span>
+                        </a>
                     </div>
-                    <div class="code-viewer-wrap">
-                        <div id="code-progress" class="code-progress hidden" role="progressbar" aria-label="代码加载进度">
-                            <div id="code-progress-bar" class="code-progress-bar"></div>
+                    <div class="app-embed-wrap">
+                        <div id="app-embed-progress" class="code-progress hidden" role="progressbar" aria-label="应用加载进度" aria-valuemin="0" aria-valuemax="100">
+                            <div id="app-embed-bar" class="code-progress-bar"></div>
                         </div>
-                        <pre class="code-viewer"><code id="code-viewer-content"></code></pre>
+                        <div id="app-embed-status" class="app-embed-status hidden">
+                            <i class="ri-loader-4-line app-embed-spinner" aria-hidden="true"></i>
+                            <span data-zh="应用启动中…" data-en="Launching app…">应用启动中…</span>
+                        </div>
+                        <iframe id="app-embed-frame" class="app-embed-frame" title="编码叶 CodeLeaf 应用预览"></iframe>
                     </div>
                 </div>
             </div>
