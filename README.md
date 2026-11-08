@@ -100,6 +100,17 @@ python3 -m http.server 8080
   下载覆盖即可升级，无需改动主站任何代码；
 - 该子目录是独立应用，与主站的 hash 路由、样式互不影响。
 
+## 集成应用：布谷鸟工作台
+
+`https://www.anliways.com/cuckoo/` — 个人效率工作台（单文件静态应用）。
+
+- 入口在「项目橱窗」的 `projects.json` 中维护（id: `cuckoo`）；
+- `cuckoo/index.html` 为完全自包含的单文件应用（HTML/CSS/JS 全部内联，无外部资源依赖），
+  直接用新的单文件覆盖 `cuckoo/index.html` 即可升级，无需改动主站任何代码；
+- 数据（提醒/任务/看板/日历/邮件等）仅保存在用户浏览器 localStorage，支持页面内 JSON 导出/导入备份；
+- AI 文本与图像生成需在应用「设置」中自行配置 API；
+- 该子目录是独立应用，与主站的 hash 路由、样式互不影响。
+
 ## RSS 订阅
 
 订阅地址：`https://www.anliways.com/rss.xml`（页面 head 中已做自动发现）。

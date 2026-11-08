@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- 页面自带深/浅色切换，声明仅浅色可禁用浏览器"强制暗色"，避免其反色破坏对比度 -->
+<meta name="color-scheme" content="only light">
+<meta name="description" content="布谷鸟 Cuckoo 工作台：提醒、每日任务、看板、日历、邮件与 AI 文本/图像生成集成于一体的个人效率工作台（数据仅存本机浏览器）。">
+<title>Cuckoo 工作台</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE2IDExdjVsMy41IDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
+<style>
+  :root{
+    --bg:#f2f4f7; --card:#ffffff; --primary:#0d9488; --primary-d:#0f766e;
+    --primary-soft:rgba(13,148,136,.10);
+    --text:#1f2937; --muted:#6b7280; --border:#e6e9ee; --border-strong:#cfd6de; --danger:#dc2626;
+    --warn:#f59e0b; --ok:#16a34a; --soft:#f0fdfa; --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 2px 6px rgba(16,24,40,.05);
+    --shadow-pop:0 8px 24px rgba(16,24,40,.12);
+    --topbar-h:60px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1100px 520px at 12% -8%,rgba(13,148,136,.06),transparent 60%),linear-gradient(180deg,#f6f8fa 0%,var(--bg) 320px); color:var(--text); font-size:14px; line-height:1.5;
+    min-height:100vh;
+    display:flex; flex-direction:column;
+  }
+  button{font-family:inherit;cursor:pointer}
+  /* 统一交互反馈：所有可点元素有过渡，键盘聚焦有可见焦点环 */
+  button,input,textarea,select{transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s,transform .15s}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .search-box input:focus{box-shadow:none}
+  .search-box:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  /* 全局细滚动条 */
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+  ::-webkit-scrollbar-thumb:hover{background:#b6c0cb}
+  ::-webkit-scrollbar-track{background:transparent}
+  input,textarea,select{font-family:inherit;font-size:16px;color:var(--text)}
+
+  /* ---------- Top bar ---------- */
+  .topbar{height:var(--topbar-h); display:flex; align-items:center; gap:12px; padding:0 16px; background:#fff; border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; z-index:30;}
+  .brand{font-weight:700; font-size:18px; color:var(--primary); white-space:nowrap; display:flex; align-items:center; gap:6px}
+  .brand svg{width:22px;height:22px}
+  .reminders{display:flex; gap:8px; flex:1; overflow-x:auto; padding:6px 2px; scrollbar-width:thin}
+  .reminders::-webkit-scrollbar{height:4px}
+  .reminders::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  .rem-chip{display:flex; align-items:center; gap:6px; background:var(--soft); border:1px solid #cceae6; border-radius:999px; padding:5px 10px; white-space:nowrap; flex-shrink:0; max-width:260px;}
+  .rem-chip.overdue{background:#fef2f2;border-color:#fecaca;color:var(--danger)}
+  .rem-chip .rem-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px}
+  .rem-chip .rem-date{font-size:11px;color:var(--muted)}
+  .rem-chip.overdue .rem-date{color:var(--danger)}
+  .rem-done{border:none;background:var(--primary);color:#fff;border-radius:999px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 5px rgba(13,148,136,.35)}
+  .rem-done svg{width:13px;height:13px}
+  .rem-empty{color:var(--muted);font-size:13px;padding:6px 4px}
+  .top-actions{display:flex;gap:8px;flex-shrink:0}
+  .btn{border:1px solid var(--border); background:#fff; color:var(--text); border-radius:10px; padding:8px 12px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px;}
+  .btn svg{width:16px;height:16px}
+  .btn:hover{border-color:var(--border-strong);background:#f8fafc}
+  .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-d));border-color:var(--primary-d);color:#fff;box-shadow:0 2px 8px rgba(13,148,136,.28)}
+  .btn-primary:hover{background:var(--primary-d);border-color:var(--primary-d);transform:translateY(-1px);box-shadow:0 4px 14px rgba(13,148,136,.35)}
+  .btn-primary:active{transform:translateY(0);box-shadow:0 1px 4px rgba(13,148,136,.3)}
+  .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  .btn-danger:hover{background:#b91c1c;border-color:#b91c1c}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+  .btn-ghost:hover{background:transparent;border-color:transparent;color:var(--text)}
+  .btn-sm{padding:6px 10px;min-height:34px;font-size:12px}
+
+  /* ---------- Backup hint ---------- */
+  .backup-hint{background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:20;}
+  .backup-hint[hidden]{display:none}
+  .backup-hint button{margin-left:auto}
+
+  /* ---------- Layout (左-中-右) ---------- */
+  /* 页面级滚动：主区自然高度，内容随页面下滚；顶栏 sticky 吸顶 */
+  .main{flex:1; display:flex; gap:16px; padding:16px}
+  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:16px}
+  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:16px}
+  .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:16px}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; min-height:0;}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .card-head .ttl{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px}
+  /* 卡片标题图标改为「色块徽章」：柔和底色 + 圆角，建立模块识别度 */
+  .card-head .ttl svg{width:32px;height:32px;padding:7px;border-radius:9px;background:var(--primary-soft);color:var(--primary);flex-shrink:0}
+  .card-head .act{margin-left:auto;display:flex;gap:6px}
+
+  /* ---------- Text writer ---------- */
+  /* 左栏合并卡片组：文本编写 + 图片设计 同处一张卡片，虚线分隔保持层次 */
+  #genCard{gap:0}
+  .gen-group{display:flex;flex-direction:column;min-height:0}
+  .gen-divider{border:none;border-top:1px dashed var(--border);margin:14px 0;flex-shrink:0}
+  .writer-box{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}
+  .writer-box textarea{flex:1;min-height:80px;resize:none;border:1px solid var(--border);border-radius:10px;padding:10px;line-height:1.5;}
+  .writer-row{display:flex;gap:8px;align-items:center}
+  .writer-result{border:1px solid var(--border);border-radius:10px;padding:10px;background:#fafafa;font-size:13px;white-space:pre-wrap;overflow:auto;max-height:150px;min-height:40px;color:#374151;}
+  .hist{margin-top:10px;border-top:1px dashed var(--border);padding-top:8px;overflow:auto;max-height:110px}
+  .hist-item{border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;font-size:12px}
+  .hist-item .h-q{color:var(--primary);font-weight:600;margin-bottom:2px}
+  .hist-item .h-a{color:#374151;white-space:pre-wrap}
+  .muted-tip{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:8px}
+
+  /* ---------- Image designer ---------- */
+  .img-prompt{display:flex;gap:8px}
+  .img-prompt input{flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 10px;min-height:42px}
+  .img-stage{margin-top:10px;border:2px dashed var(--border);border-radius:10px;min-height:130px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;overflow:hidden;background:#fafafa;}
+  .img-stage img{max-width:100%;max-height:220px;border-radius:8px;display:block}
+  .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+  .img-grid img{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--border);object-fit:cover;cursor:pointer;transition:transform .18s,box-shadow .18s}
+  .img-grid img:hover{transform:scale(1.04);box-shadow:var(--shadow);position:relative;z-index:1}
+  .spin{width:18px;height:18px;border:2px solid #cbd5e1;border-top-color:var(--primary);border-radius:50%;animation:sp 0.8s linear infinite;display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ---------- Daily task list (横滑) ---------- */
+  #dailyCard{flex-shrink:0}
+  .daily-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px}
+  .daily-tabs::-webkit-scrollbar{height:4px}
+  .daily-tabs::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  .daily-tab{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;flex-shrink:0;color:var(--muted)}
+  .daily-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .daily-wrap{display:flex;align-items:center;gap:6px}
+  .daily-arrow{width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .daily-scroll{flex:1;display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;scroll-behavior:smooth}
+  .daily-scroll::-webkit-scrollbar{height:6px}
+  .daily-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+  .daily-card{min-width:190px;max-width:240px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .18s,transform .18s}
+  .daily-card:not(.done):hover{border-color:var(--border-strong);box-shadow:var(--shadow);transform:translateY(-1px)}
+  .daily-card.done{opacity:.55}
+  .daily-card .dc-top{display:flex;align-items:center;gap:8px}
+  .daily-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--primary);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .daily-check.on{background:var(--primary)}
+  .daily-check svg{width:13px;height:13px;color:#fff;display:none}
+  .daily-check.on svg{display:block}
+  .daily-card .dc-title{font-size:13px;flex:1;line-height:1.4}
+  .daily-card.done .dc-title{text-decoration:line-through;color:var(--muted)}
+  .daily-card .dc-bot{display:flex;align-items:center;gap:6px}
+  .daily-card .dc-date{font-size:11px;color:var(--muted)}
+  .daily-card .dc-del{margin-left:auto;border:none;background:transparent;color:var(--muted);font-size:15px;line-height:1}
+  .dc-bot .ic-btn{width:24px;height:24px;margin-left:6px}
+  .daily-empty{color:var(--muted);font-size:13px;padding:16px;text-align:center;width:100%}
+
+  /* ---------- Vertical Kanban ---------- */
+  #kanbanCard{flex:1}
+  .kpi{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+  .kpi .ring{flex-shrink:0}
+  .kpi .bars{flex:1;display:flex;flex-direction:column;gap:6px}
+  .bar-row{display:flex;align-items:center;gap:8px;font-size:12px}
+  .bar-row .bl{width:54px;color:var(--muted);flex-shrink:0}
+  .bar-track{flex:1;height:8px;background:#f1f5f9;border-radius:6px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--primary),var(--primary-d));transition:width .3s ease}
+  .bar-row .bn{width:30px;text-align:right;color:var(--muted)}
+  .ksec{border:1px solid var(--border);border-radius:10px;padding:9px;margin-bottom:8px;background:#fff}
+  .ksec .ksh{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px}
+  .ksec .ksh .dot{width:9px;height:9px;border-radius:50%}
+  .ksec .ksh .kc{margin-left:auto;color:var(--muted);font-weight:400;font-size:12px}
+  .ksec .ksh .kadd2{border:1px dashed var(--border);background:#fff;border-radius:6px;padding:2px 9px;font-size:12px;color:var(--muted)}
+  .ks-cards{display:flex;flex-direction:column;gap:6px}
+  .kcard{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:13px;display:flex;align-items:center;gap:8px;transition:border-color .15s,background-color .15s,transform .18s,box-shadow .18s}
+  .kcard:hover{border-color:var(--border-strong);background:#fff;transform:translateY(-1px);box-shadow:var(--shadow)}
+  .kcard[draggable="true"]{cursor:grab}
+  .kcard.dragging{opacity:.45}
+  .ksec.drag-over{border-color:var(--primary);background:var(--soft)}
+  .kcard .kt{flex:1;min-width:0}
+  .kcard .kact{display:flex;gap:4px;flex-shrink:0}
+  .kcard .kact button{width:26px;height:26px;border:1px solid var(--border);background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .kcard .kact button:disabled{opacity:.3}
+  .kempty{color:#cbd5e1;font-size:12px;text-align:center;padding:8px 0}
+
+  /* ---------- Calendar ---------- */
+  #calCard{flex-shrink:0}
+  .cal-nav{display:flex;align-items:center;gap:6px}
+  .cal-nav .m{font-weight:600;min-width:96px;text-align:center}
+  .cal-nav button{width:32px;height:32px;border:1px solid var(--border);background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px}
+  .cal-grid .wd{text-align:center;font-size:11px;color:var(--muted);padding:4px 0}
+  .cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:1px solid transparent;position:relative;transition:background-color .15s}
+  .cal-day:hover{background:#f1f5f9}
+  .cal-day.other{color:#cbd5e1}
+  .cal-day.today{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(13,148,136,.3)}
+  .cal-day .dots{position:absolute;bottom:4px;left:0;right:0;display:flex;justify-content:center;gap:2px}
+  .cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--primary)}
+  .cal-day .dot.d-daily{background:var(--warn)}
+  .cal-day .dot.d-rem{background:var(--danger)}
+  .cal-day.today .dot{background:#fff}
+
+  /* ---------- Email ---------- */
+  #emailCard{flex:1}
+  .mail-list{display:flex;flex-direction:column;gap:8px;overflow:auto;flex:1;min-height:0}
+  .mail-item{border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;background:#fff;transition:border-color .15s,box-shadow .15s,transform .18s}
+  .mail-item:hover{border-color:var(--border-strong);box-shadow:var(--shadow);transform:translateY(-1px)}
+  .mail-item .m-top{display:flex;align-items:baseline;gap:8px}
+  .mail-item .m-from{font-weight:600;font-size:13px}
+  .mail-item .m-date{font-size:11px;color:var(--muted);margin-left:auto;flex-shrink:0}
+  .mail-item .m-sub{font-size:13px;margin-top:2px}
+  .mail-item .m-snip{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* ---------- Mail toolbar (P2-2 搜索 + 未读筛选) ---------- */
+  .mail-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .search-box{flex:1;display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:0 10px;min-height:38px}
+  .search-box svg{width:15px;height:15px;color:var(--muted);flex-shrink:0}
+  .search-box input{flex:1;border:none;background:transparent;outline:none;padding:8px 0;font-size:14px;color:var(--text)}
+  .search-box input::-webkit-search-cancel-button{cursor:pointer}
+  .btn.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .mail-empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 8px}
+  /* ---------- 邮箱采集 ---------- */
+  .ac-row{display:flex;align-items:center;gap:8px}
+  .ac-badge{font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:5px;padding:2px 8px;flex-shrink:0;white-space:nowrap}
+  .ac-mail{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+  .ac-count{color:var(--muted);font-weight:400;margin-left:4px}
+  .m-via{font-size:10px;color:var(--primary);background:var(--primary-soft);border-radius:4px;padding:1px 6px;margin-left:6px;flex-shrink:0;align-self:center}
+  body.dark .search-box{background:var(--bg);border-color:var(--border)}
+  /* ---------- Kanban toolbar (P2-3 搜索 + 列筛选) ---------- */
+  .kanban-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .kb-filters{display:flex;gap:4px;flex-shrink:0}
+  .kb-filter{padding:5px 10px;border:1px solid var(--border);background:#fff;border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s}
+  .kb-filter.on{color:#fff;border-color:transparent}
+  .kb-filter[data-col="todo"].on{background:#94a3b8}
+  .kb-filter[data-col="doing"].on{background:#0ea5e9}
+  .kb-filter[data-col="done"].on{background:#16a34a}
+  body.dark .kb-filter{background:var(--soft);border-color:var(--border)}
+
+  /* ---------- Drawer / Modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:none;align-items:center;justify-content:center}
+  .overlay.show{display:flex}
+  .drawer{background:#fff;width:100%;max-width:460px;border-radius:18px;max-height:88vh;overflow:auto;padding:18px;margin:auto;box-shadow:var(--shadow-pop)}
+  .drawer h3{margin:0 0 14px;font-size:17px;display:flex;align-items:center;gap:8px}
+  .drawer h3 .x{margin-left:auto;width:32px;height:32px;border:none;background:#f1f5f9;border-radius:8px;font-size:18px;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;}
+  .field input,.field select{min-height:40px}
+  .sec{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
+  .sec .sec-t{font-weight:600;font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .sec .sec-t svg{width:26px;height:26px;padding:5px;border-radius:7px;background:var(--primary-soft);color:var(--primary)}
+  .data-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .hint{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:6px}
+  .modal-center .drawer{border-radius:18px;margin:auto}
+  .overlay.modal-center{align-items:center;padding:16px}
+  /* 弹层入场动画：淡入 + 轻微上浮缩放（transform/opacity，GPU 合成，不触发布局） */
+  .overlay.show .drawer{animation:drawerIn .22s cubic-bezier(.2,.8,.3,1.1)}
+  @keyframes drawerIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+  .lightbox.show img{animation:drawerIn .2s ease}
+
+  /* ---------- Toast（含撤销按钮） ---------- */
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2937;color:#fff;padding:9px 14px 9px 18px;border-radius:999px;z-index:90;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px;animation:toastIn .18s ease;max-width:88vw}
+  .toast .t-msg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toast button{border:none;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:3px 12px;font-size:12px;min-height:26px;flex-shrink:0}
+  .toast button:hover{background:rgba(255,255,255,.3)}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+  /* ---------- Mobile (上下堆叠) ---------- */
+  @media (max-width:900px){
+    body{display:block;height:auto;overflow:auto}
+    .main{flex-direction:column;height:auto;overflow:visible}
+    .col-left,.col-center,.col-right{width:100%;overflow:visible}
+    .topbar{flex-wrap:wrap;height:auto;padding:10px 12px;gap:8px}
+    .reminders{order:3;width:100%;flex:1 1 100%}
+    .top-actions{margin-left:auto}
+    #genCard,#dailyCard,#calCard,#kanbanCard,#emailCard{flex:none}
+    .img-grid{grid-template-columns:repeat(4,1fr)}
+    .backup-hint{flex-wrap:wrap}
+
+    .overlay{align-items:flex-end}
+    .drawer{border-radius:18px 18px 0 0;margin:0;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+    .main{padding:12px;gap:12px}
+    .top-actions{flex-wrap:wrap}
+    /* 触控目标：放大过小的图标按钮（22-26px 对手指过小） */
+    .rem-done{width:28px;height:28px}
+    .rem-done svg{width:15px;height:15px}
+    .ic-btn{width:32px;height:32px}
+    .ic-btn svg{width:15px;height:15px}
+    .dc-bot .ic-btn{width:28px;height:28px;margin-left:0}
+    .dc-del{font-size:20px;padding:2px 8px}
+    .daily-check{width:24px;height:24px}
+    .daily-check svg{width:14px;height:14px}
+    .daily-arrow{width:36px;height:36px}
+    .kcard .kact button{width:30px;height:30px}
+    .btn-sm{min-height:38px}
+    .daily-tab{padding:7px 14px}
+    .kb-filter{padding:7px 12px}
+    .ksec .ksh .kadd2{padding:6px 12px}
+    .search-box input{font-size:16px}
+    /* 搜索框 + 筛选按钮放不下时换行，避免撑出横向滚动 */
+    .kanban-toolbar{flex-wrap:wrap}
+  }
+
+  /* ---------- 窄桌面/平板 (901-1200)：三栏过挤，改为上中下两行 ---------- */
+  @media (min-width:901px) and (max-width:1200px){
+    .main{flex-wrap:wrap}
+    .col-left{flex:1 1 300px}
+    .col-center{flex:1.4 1 420px}
+    .col-right{flex:1 1 100%; flex-direction:row; align-items:flex-start}
+    #calCard{flex:0 1 480px}
+    #emailCard{flex:1 1 320px}
+  }
+
+  /* ---------- 大屏 (>1600)：内容限宽居中，避免过度拉伸 ---------- */
+  @media (min-width:1600px){
+    .main{max-width:1680px; margin:0 auto}
+    .backup-hint{max-width:1680px; margin:0 auto; width:calc(100% - 32px)}
+  }
+
+  /* ---------- Theme toggle ---------- */
+  .theme-toggle{width:38px;height:38px;border:1px solid var(--border);background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0}
+  .theme-toggle svg{width:18px;height:18px}
+  /* 亮色显示太阳、暗色显示月亮 */
+  .theme-toggle .icon-moon{display:none}
+  body.dark .theme-toggle .icon-sun{display:none}
+  body.dark .theme-toggle .icon-moon{display:block}
+
+  /* ---------- Lightbox ---------- */
+  .lightbox{position:fixed;inset:0;background:rgba(15,23,42,.88);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:92vw;max-height:86vh;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);cursor:default}
+  .lb-close{position:absolute;top:18px;right:18px;width:42px;height:42px;border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:50%;font-size:22px;display:flex;align-items:center;justify-content:center}
+  .lb-dl{position:absolute;bottom:20px;left:50%;transform:translateX(-50%)}
+
+  /* ---------- generic icon button ---------- */
+  .ic-btn{width:26px;height:26px;border:1px solid var(--border);background:#fff;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;padding:0}
+  .ic-btn svg{width:14px;height:14px;display:block}
+  .ic-btn.danger{color:var(--danger);border-color:#fecaca}
+
+  /* ---------- email read state ---------- */
+  .mail-item{position:relative}
+  .mail-item.unread{border-left:3px solid var(--primary);background:var(--soft)}
+  .mail-item .m-unread{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary);margin-right:6px;vertical-align:middle}
+  .mail-item.read .m-unread{display:none}
+  .mail-actions{display:flex;justify-content:flex-end;margin-top:8px}
+  .mail-del{position:absolute;top:8px;right:8px}
+
+  /* ---------- Dark theme ---------- */
+  /* 冷调炭灰层次：页=--bg / 卡=--card / 内衬=--soft / 线=--border，与 teal 主色协调；文字 #f2f5f4 */
+  body.dark{ color-scheme:dark; --bg:#181b1e; --card:#22262a; --primary:#2dd4bf; --primary-d:#14b8a6; --primary-soft:rgba(45,212,191,.13);
+    --text:#f2f5f4; --muted:#9aa5ad; --border:#343a40; --border-strong:#465059; --soft:#2b3036;
+    --shadow:0 2px 8px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+    --shadow-pop:0 16px 48px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.05); }
+  /* 环境光：页面顶部两组低饱和光斑（纯 CSS 渐变，无图片资源） */
+  body.dark{background:radial-gradient(1100px 520px at 15% -10%,rgba(45,212,191,.07),transparent 60%),radial-gradient(900px 460px at 108% -6%,rgba(14,165,233,.05),transparent 55%),var(--bg)}
+  /* 卡片顶部内侧高光：模拟顶部受光面，增强层次 */
+  body.dark .card{box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.04)}
+  body.dark .topbar,body.dark .theme-toggle,body.dark .btn,body.dark .daily-arrow,body.dark .cal-nav button,
+  body.dark .kcard .kact button,body.dark .kadd2,body.dark .ic-btn{background:var(--card);color:var(--muted)}
+  body.dark .daily-check{background:var(--soft)}
+  body.dark .daily-check.on{background:var(--primary)}
+  body.dark .daily-check.on svg{color:#042f2e}
+  body.dark .btn.on{background:var(--primary);border-color:var(--primary);color:#042f2e}
+  body.dark .daily-tab{background:var(--soft);border-color:var(--border);color:var(--muted)}
+  body.dark .daily-tab.active{background:var(--primary);border-color:var(--primary);color:#042f2e}
+  body.dark .btn-primary{background:linear-gradient(135deg,#2dd4bf,#14b8a6);border-color:#14b8a6;color:#042f2e;box-shadow:0 2px 10px rgba(45,212,191,.22)}
+  body.dark .ksec .ksh .kadd2{background:var(--card);color:var(--muted)}
+  body.dark .sec,body.dark .writer-result,body.dark .img-stage,body.dark .daily-card,
+  body.dark .kcard,body.dark .mail-item,body.dark .muted-tip,body.dark .hint,body.dark .hist-item,
+  body.dark input,body.dark textarea,body.dark select{background:var(--bg)}
+  body.dark .drawer{background:var(--card)}
+  body.dark .ksec{background:var(--card)}
+  body.dark .mail-item.unread{background:var(--soft)}
+  body.dark .kcard:hover{background:var(--soft)}
+  body.dark .daily-card:not(.done):hover{background:var(--soft)}
+  body.dark .btn:hover{background:var(--soft);border-color:var(--border-strong)}
+  body.dark .writer-result,body.dark .hist-item .h-a,body.dark .m-sub{color:var(--text)}
+  body.dark .backup-hint{background:#422006;border-color:#854d0e;color:#fcd34d}
+  body.dark .bar-track{background:var(--border)}
+  body.dark .cal-day:hover{background:var(--border)}
+  body.dark .cal-day.other{color:#6b6b6b}
+  body.dark .cal-day.today{color:#042f2e}
+  body.dark .rem-done{color:#042f2e;box-shadow:0 1px 5px rgba(45,212,191,.28)}
+  body.dark .cal-day.today{box-shadow:0 2px 8px rgba(45,212,191,.25)}
+  body.dark .rem-chip{background:var(--soft);border-color:#474747}
+  body.dark .rem-chip.overdue{background:#450a0a;border-color:#7f1d1d;color:#fca5a5}
+  body.dark .drawer .x{background:var(--border);color:var(--muted)}
+  body.dark ::-webkit-scrollbar-thumb{background:var(--border)}
+  body.dark ::-webkit-scrollbar-thumb:hover{background:var(--border-strong)}
+  /* ---------- Today panel 已移除：与顶栏提醒条/每日任务/日历功能重复（2026-11-09） ---------- */
+
+  /* 减少动效偏好：系统开启「减弱动态效果」时停用全部动画与过渡 */
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
+    Cuckoo
+  </div>
+  <div class="reminders" id="remindersBar"></div>
+  <div class="top-actions">
+    <button class="theme-toggle" id="btnTheme" title="切换深色 / 浅色" aria-label="切换深色 / 浅色">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+    </button>
+    <button class="btn btn-sm" id="btnAddReminder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>提醒
+    </button>
+    <button class="btn btn-sm" id="btnData">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>数据
+    </button>
+    <button class="btn btn-sm" id="btnSettings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>设置
+    </button>
+  </div>
+</header>
+
+<div class="backup-hint" id="backupHint" hidden>
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+  <span>数据已积累较多，建议点右上角「数据」导出 JSON 备份，防止丢失。</span>
+  <button class="btn btn-sm" onclick="document.getElementById('btnData').click()">去备份</button>
+</div>
+
+
+
+<main class="main">
+  <!-- ===== 左列：纯文本编写 + 图片设计 ===== -->
+  <section class="col-left">
+    <!-- 左栏合并卡片组：纯文本编写 + 图片设计（内部元素 ID 不变，交互不受影响） -->
+    <div class="card" id="genCard">
+      <div class="gen-group">
+        <div class="card-head">
+          <div class="ttl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
+            纯文本编写
+          </div>
+          <div class="act"><button class="btn btn-sm btn-ghost" id="btnTextHistClear">清除历史</button><button class="btn btn-sm btn-ghost" id="btnTextClear">清空输入</button></div>
+        </div>
+        <div class="writer-box">
+          <textarea id="textInput" placeholder="输入需求，例如：帮我写一段产品发布文案……"></textarea>
+          <div class="writer-row"><button class="btn btn-primary" id="btnTextGen" style="flex:1" data-icon="gen">生成文本</button></div>
+          <div class="writer-result" id="textResult">在「设置」中配置文本 API 后即可使用。</div>
+          <div class="writer-row" style="margin-top:6px"><button class="btn btn-sm btn-ghost" id="btnTextCopy">复制结果</button></div>
+          <div class="hist" id="textHist"></div>
+        </div>
+      </div>
+
+      <div class="gen-divider" role="separator"></div>
+
+      <div class="gen-group">
+        <div class="card-head">
+          <div class="ttl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            图片设计
+          </div>
+          <div class="act"><button class="btn btn-sm btn-ghost" id="btnImgClear">清空</button></div>
+        </div>
+        <div class="img-prompt">
+          <input id="imgPrompt" placeholder="描述要生成的图像，例如：扁平风科技海报">
+          <button class="btn btn-primary" id="btnImgGen" data-icon="img">生成</button>
+        </div>
+        <div class="img-stage" id="imgStage">在「设置」中配置图像 API 后即可生成。</div>
+        <div class="img-grid" id="imgGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 中列：每日任务清单(横滑) + 看板(上下) ===== -->
+  <section class="col-center">
+    <div class="card" id="dailyCard">
+      <div class="card-head">
+        <div class="ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          每日任务清单
+        </div>
+        <div class="act"><button class="btn btn-sm btn-ghost" id="btnDailyAdd">+ 添加</button></div>
+      </div>
+      <div class="daily-tabs" id="dailyTabs"></div>
+      <div class="daily-wrap">
+        <button class="daily-arrow" id="dailyLeft" aria-label="向左滚动" title="向左滚动" data-icon="chevL"></button>
+        <div class="daily-scroll" id="dailyScroll"></div>
+        <button class="daily-arrow" id="dailyRight" aria-label="向右滚动" title="向右滚动" data-icon="chevR"></button>
+      </div>
+    </div>
+
+    <div class="card" id="kanbanCard">
+      <div class="card-head">
+        <div class="ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="8" y2="20"/><line x1="16" y1="4" x2="16" y2="18"/></svg>
+          任务看板
+        </div>
+      </div>
+      <div class="kanban-toolbar">
+        <div class="search-box" data-icon="search">
+          <input id="kanbanSearch" type="search" placeholder="搜索任务标题" autocomplete="off">
+        </div>
+        <div class="kb-filters" id="kbFilters"></div>
+      </div>
+      <div class="kpi">
+        <div class="ring" id="kpiRing"></div>
+        <div class="bars" id="kpiBars"></div>
+      </div>
+      <div id="kanban"></div>
+    </div>
+  </section>
+
+  <!-- ===== 右列：日历 + 邮件列表 ===== -->
+  <section class="col-right">
+    <div class="card" id="calCard">
+      <div class="card-head">
+        <div class="ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          日历
+        </div>
+        <div class="act cal-nav">
+          <button id="calPrev" aria-label="上一月" title="上一月" data-icon="chevL"></button>
+          <span class="m" id="calMonth"></span>
+          <button id="calNext" aria-label="下一月" title="下一月" data-icon="chevR"></button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="card" id="emailCard">
+      <div class="card-head">
+        <div class="ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
+          邮件列表
+        </div>
+        <div class="act"><button class="btn btn-sm btn-ghost" id="btnMailRefresh">刷新</button></div>
+      </div>
+      <div class="mail-toolbar">
+        <div class="search-box" data-icon="search">
+          <input id="mailSearch" type="search" placeholder="搜索发件人 / 主题 / 正文" autocomplete="off">
+        </div>
+        <button class="btn btn-sm" id="btnMailUnread">未读</button>
+      </div>
+      <div class="mail-list" id="mailList"></div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay"><div class="drawer" id="drawer"></div></div>
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="关闭预览" title="关闭预览">×</button>
+  <img id="lbImg" src="" alt="">
+  <button class="btn btn-primary lb-dl" onclick="dlLightbox()">下载图片</button>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const PREFIX = 'wb_cuckoo_';
+// 通用日期格式化：Date -> 'YYYY-MM-DD'（todayStr/shiftDay/seed/日历共用）
+const fmtDate = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const todayStr = () => fmtDate(new Date());
+const shiftDay = (n) => { const d=new Date(); d.setDate(d.getDate()+n); return fmtDate(d); };
+const fmtMD = s => { const p=s.split('-'); return (p[1]?p[1]:'')+'/'+((p[2]||'').replace(/^0/,'')||''); };
+const relDay = s => { if(!s) return ''; if(s===todayStr()) return '今天'; if(s===shiftDay(1)) return '明天'; if(s===shiftDay(2)) return '后天'; if(s===shiftDay(-1)) return '昨天'; return fmtMD(s); };
+const rid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2,10);
+const LIMITS = { topReminders:3, imgMax:9, textMax:50, backupHint:30, importMaxBytes:10*1024*1024 };
+const CHK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const ICON_GEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>';
+const ICON_IMG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+const ICON_EDIT = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>';
+const ICON_CHEV_L = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>';
+const ICON_CHEV_R = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
+const ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+/* ---------- 邮箱采集：服务商预置（IMAP 服务器/端口供代理参考；浏览器无法直连 IMAP） ---------- */
+const MAIL_PROVIDERS = {
+  qq:      {name:'QQ 邮箱',     host:'imap.qq.com',           port:993, hint:'QQ 邮箱网页版 → 设置 → 账户 → 开启 IMAP/SMTP 服务并生成授权码'},
+  '163':   {name:'163 邮箱',    host:'imap.163.com',          port:993, hint:'163 网页版 → 设置 → POP3/SMTP/IMAP → 开启服务并获取授权码'},
+  outlook: {name:'Outlook',     host:'outlook.office365.com', port:993, hint:'Microsoft 账户开启两步验证后生成应用密码，或注册 Azure 应用走 OAuth2'},
+  gmail:   {name:'Gmail',       host:'imap.gmail.com',        port:993, hint:'Google 账户开启两步验证后生成应用专用密码，或注册 Google Cloud OAuth2'},
+  icloud:  {name:'iCloud 邮箱', host:'imap.mail.me.com',      port:993, hint:'Apple ID → 登录与安全 → App 专用密码'}
+};
+
+const ls = {
+  get(k, def){ try{ const v=localStorage.getItem(PREFIX+k); return v==null?def:JSON.parse(v); }catch(e){ return def; } },
+  // 写库后自动执行备份检查，调用方无需再手工调用 checkBackup()
+  set(k, v){ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); checkBackup(); return true; }catch(e){ console.warn('[cuckoo] 存储写入失败:', k, e); toast('本地存储空间已满，请导出备份并清理历史记录'); return false; } },
+  del(k){ localStorage.removeItem(PREFIX+k); }
+};
+
+/* ---------- 数据模型（localStorage schema） ----------
+   所有键以 PREFIX('wb_cuckoo_') 前缀存储，值为 JSON：
+   - reminders:      [{id, text, date:'YYYY-MM-DD', done}]
+   - text_history:   [{id, q, a, t}]
+   - image_history:  [{id, prompt, url(base64/dataURI), t}]
+   - calendar_events:[{date:'YYYY-MM-DD', title}]
+   - daily_tasks:    [{id, title, date:'YYYY-MM-DD', done}]
+   - kanban:         [{id, title, col:'todo'|'doing'|'done'}]
+   - email_cache:    [{id, from, subject, date, snippet, body, read?, via?}]（via=采集来源邮箱服务商名）
+   - mail_accounts:  [{id, provider:'qq'|'163'|'outlook'|'gmail'|'icloud', email, credential}]（邮箱采集绑定账户，凭证仅存本机）
+   - config:         {textApi, imageApi, emailApi}（各含 url/key/model...）
+   - seeded:         boolean（是否已初始化种子数据）
+------------------------------------------------------- */
+/* ---------- Seed example data ---------- */
+function seedIfEmpty(){
+  if(ls.get('seeded', false)) return;
+  ls.set('reminders', [
+    {id:rid(), text:'提交本周项目周报', date:shiftDay(-2), done:false},
+    {id:rid(), text:'团队站会 10:00', date:todayStr(), done:false},
+    {id:rid(), text:'Review 新版设计稿', date:shiftDay(1), done:false},
+    {id:rid(), text:'回复客户邮件', date:shiftDay(2), done:false}
+  ]);
+  ls.set('text_history', []);
+  ls.set('image_history', []);
+  ls.set('calendar_events', [
+    {date:fmtDate(new Date()), title:'今日聚焦：完成 Cuckoo 初版'},
+    {date:shiftDay(3), title:'季度规划会'}
+  ]);
+  ls.set('daily_tasks', [
+    {id:rid(), title:'晨会同步进度', date:todayStr(), done:false},
+    {id:rid(), title:'回复设计评审意见', date:todayStr(), done:true},
+    {id:rid(), title:'撰写周报初稿', date:shiftDay(1), done:false},
+    {id:rid(), title:'预约客户演示', date:shiftDay(2), done:false}
+  ]);
+  ls.set('kanban', [
+    {id:rid(), title:'搭建顶栏提醒模块', col:'done'},
+    {id:rid(), title:'接入文本编写 API', col:'doing'},
+    {id:rid(), title:'接入图像设计 API', col:'doing'},
+    {id:rid(), title:'邮件列表联调', col:'todo'},
+    {id:rid(), title:'移动端适配验收', col:'todo'}
+  ]);
+  ls.set('email_cache', [
+    {id:'s1', from:'设计团队', subject:'Cuckoo 视觉规范 v2', date:todayStr()+' 09:12', snippet:'更新了主色板与卡片圆角，请确认后进入开发。', body:'Hi，\n\n附上 Cuckoo 视觉规范 v2：主色调整为 teal #0d9488，卡片圆角 14px，整体更轻盈。请确认后我们进入开发阶段。\n\n谢谢！'},
+    {id:'s2', from:'产品周报', subject:'本周数据汇总', date:shiftDay(-1)+' 18:40', snippet:'DAU 环比 +12%，新增提醒功能使用率最高。', body:'本周关键数据：\n- DAU 环比 +12%\n- 提醒功能使用率最高（68%）\n- 图像设计模块待联调\n\n下周重点：移动端验收。'},
+    {id:'s3', from:'客户 · 王先生', subject:'合作方案咨询', date:shiftDay(-2)+' 14:05', snippet:'看到你们的工作台产品，想了解企业版报价。', body:'您好，\n\n我们关注到 Cuckoo 工作台，想了解企业版的部署与报价方案，方便的话约个时间沟通。\n\n王', read:true}
+  ]);
+  ls.set('config', {textApi:{url:'',key:'',model:'gpt-4o-mini'}, imageApi:{url:'',key:'',model:'dall-e-3',size:'1024x1024'}, emailApi:{url:'',key:''}});
+  ls.set('seeded', true);
+}
+
+/* =================================================================== TOP BAR */
+function renderReminders(){
+  const all = ls.get('reminders', []);
+  const today = todayStr();
+  const open = all.filter(r=>!r.done).sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
+  const bar = $('#remindersBar');
+  if(open.length===0){ bar.innerHTML='<span class="rem-empty">暂无待处理提醒 ✓</span>'; return; }
+  bar.innerHTML = open.slice(0, LIMITS.topReminders).map(r=>{
+    const overdue = r.date < today;
+    return `<div class="rem-chip ${overdue?'overdue':''}">
+      <span class="rem-date">${overdue?'逾期 '+fmtMD(r.date):relDay(r.date)}</span>
+      <span class="rem-txt">${esc(r.text)}</span>
+      <button class="rem-done" title="完成" data-id="${r.id}">${CHK}</button>
+    </div>`;
+  }).join('');
+  bar.querySelectorAll('.rem-done').forEach(b=>b.onclick=()=>toggleDone('reminders', b.dataset.id, renderReminders));
+}
+
+/* =================================================================== LEFT TOP: Text */
+function renderTextHist(){
+  const h = ls.get('text_history', []);
+  $('#textHist').innerHTML = h.length? h.slice().reverse().map(it=>
+    `<div class="hist-item" data-id="${it.id}" style="cursor:pointer"><div class="h-q">${esc(it.q)}</div><div class="h-a">${esc(it.a)}</div></div>`
+  ).join('') : '<div class="kempty">暂无生成记录</div>';
+  $('#textHist').querySelectorAll('.hist-item').forEach(el=>el.onclick=()=>{
+    const it=h.find(x=>x.id===el.dataset.id); if(!it)return;
+    $('#textInput').value=it.q; $('#textInput').focus(); toast('已回填到输入框');
+  });
+}
+async function genText(){
+  const cfg = ls.get('config',{}).textApi||{};
+  const q = $('#textInput').value.trim();
+  if(!q){ toast('请输入内容'); return; }
+  const btn=$('#btnTextGen'); btn.disabled=true; btn.innerHTML='<span class="spin"></span> 生成中';
+  try{
+    if(!cfg.url || !cfg.key){ $('#textResult').textContent='未配置文本 API：请在「设置」中填写接口地址与密钥。'; toast('请先在「设置」中配置文本 API'); throw new Error('__demo__'); }
+    const res = await apiFetch(cfg, {body:{model:cfg.model||'gpt-4o-mini', messages:[{role:'user',content:q}], temperature:0.7}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const j = await res.json();
+    let ans = j?.choices?.[0]?.message?.content || j?.output?.text || (typeof j?.response==='string'?j.response:null);
+    if(!ans) ans = JSON.stringify(j);
+    $('#textResult').textContent = ans;
+    const h = ls.get('text_history',[]); h.push({id:rid(), q, a:ans, t:todayStr()}); ls.set('text_history',h.slice(-LIMITS.textMax));
+    renderTextHist();
+  }catch(e){ if(e.message!=='__demo__'){ $('#textResult').textContent='调用失败：'+apiErrMsg(e)+'（检查设置中的 API 配置）'; } }
+  finally{ btn.disabled=false; btn.innerHTML=ICON_GEN+'生成文本'; }
+}
+
+/* =================================================================== LEFT BOTTOM: Image */
+function renderImgGrid(){
+  const h = ls.get('image_history', []);
+  $('#imgGrid').innerHTML = h.length? h.slice().reverse().map(it=>
+    `<img src="${it.url}" alt="${esc(it.prompt)}" data-url="${encodeURIComponent(it.url)}" title="${esc(it.prompt)}">`
+  ).join('') : '<div class="kempty" style="grid-column:1/-1">暂无生成图片</div>';
+  $('#imgGrid').querySelectorAll('img').forEach(im=>im.onclick=()=>openLightbox(decodeURIComponent(im.getAttribute('data-url'))));
+}
+async function genImage(){
+  const cfg = ls.get('config',{}).imageApi||{};
+  const p = $('#imgPrompt').value.trim();
+  if(!p){ toast('请输入图像描述'); return; }
+  const btn=$('#btnImgGen'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    if(!cfg.url || !cfg.key){ $('#imgStage').innerHTML='<span class="muted-tip" style="border:none;background:transparent">未配置图像 API。请在「设置」中填写 API 地址与密钥后生成。</span>'; throw new Error('__demo__'); }
+    const res = await apiFetch(cfg, {body:{model:cfg.model||'dall-e-3', prompt:p, n:1, size:cfg.size||'1024x1024'}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const j = await res.json();
+    const item = j?.data?.[0] || {};
+    let url = item.url || (item.b64_json? 'data:image/png;base64,'+item.b64_json : null);
+    if(!url) throw new Error('响应中无图像地址');
+    url = await compressImage(url);
+    $('#imgStage').innerHTML='<img src="'+url+'" style="cursor:pointer">';
+    $('#imgStage').querySelector('img').onclick=()=>openLightbox(url);
+    const h = ls.get('image_history',[]); h.push({id:rid(), prompt:p, url, t:todayStr()}); ls.set('image_history',h.slice(-LIMITS.imgMax));
+    renderImgGrid();
+  }catch(e){ if(e.message!=='__demo__'){ $('#imgStage').innerHTML='<span class="muted-tip" style="border:none;background:transparent">生成失败：'+esc(apiErrMsg(e))+'</span>'; } }
+  finally{ btn.disabled=false; btn.innerHTML=ICON_IMG+'生成'; }
+}
+function compressImage(src){
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{ let w=img.width,h=img.height; if(w>800){ h=Math.round(h*800/w); w=800; }
+      try{ const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); resolve(c.toDataURL('image/jpeg',0.82)); }
+      catch(e){ resolve(src); } };
+    img.onerror=()=>resolve(src); img.src=src;
+  });
+}
+
+/* =================================================================== CENTER TOP: Daily tasks */
+let dailySel = 'today';
+const DAILY_TABS = [
+  {id:'today', label:'今天', off:0},
+  {id:'d1', label:'明天', off:1},
+  {id:'d2', label:'后天', off:2},
+  {id:'d3', label:'大后天', off:3},
+  {id:'all', label:'全部', off:null}
+];
+function dailyDateFor(id){ const t=DAILY_TABS.find(x=>x.id===id); return t&&t.off!=null? shiftDay(t.off): null; }
+function renderDaily(){
+  $('#dailyTabs').innerHTML = DAILY_TABS.map(t=>`<button class="daily-tab ${t.id===dailySel?'active':''}" data-id="${t.id}">${t.label}</button>`).join('');
+  $('#dailyTabs').querySelectorAll('.daily-tab').forEach(b=>b.onclick=()=>{ dailySel=b.dataset.id; renderDaily(); });
+  const list = ls.get('daily_tasks', []);
+  const dsel = dailyDateFor(dailySel);
+  const shown = dsel? list.filter(t=>t.date===dsel) : list;
+  if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有任务，点右上角「+ 添加」。</div>'; return; }
+  $('#dailyScroll').innerHTML = shown.map(t=>
+    `<div class="daily-card ${t.done?'done':''}">
+      <div class="dc-top">
+        <button class="daily-check ${t.done?'on':''}" data-id="${t.id}" aria-label="切换任务完成">${CHK}</button>
+        <span class="dc-title">${esc(t.title)}</span>
+      </div>
+          <div class="dc-bot">
+            <span class="dc-date">${relDay(t.date)}</span>
+            <button class="ic-btn" data-edit="${t.id}" title="编辑">${ICON_EDIT}</button>
+            <button class="dc-del" data-id="${t.id}" title="删除">×</button>
+          </div>
+    </div>`).join('');
+  $('#dailyScroll').querySelectorAll('.daily-check').forEach(b=>b.onclick=()=>toggleDone('daily_tasks', b.dataset.id, renderDaily));
+  $('#dailyScroll').querySelectorAll('.dc-del').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id, item=ls.get('daily_tasks',[]).find(x=>x.id===id);
+    if(!item) return;
+    removeWithUndo('daily_tasks', item, {label:'任务', rerender:renderDaily});
+  });
+  $('#dailyScroll').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editDaily(b.dataset.edit));
+}
+function editDaily(id){
+  const t=ls.get('daily_tasks',[]).find(x=>x.id===id); if(!t)return;
+  formModal({
+    title:'编辑任务', saveText:'保存',
+    fields:[
+      {id:'dyTitle', label:'任务内容', value:t.title},
+      {id:'dyDate', label:'日期', type:'date', value:t.date}
+    ],
+    onSave:([title,date])=>{
+      if(!title.trim()) return false;
+      const list=ls.get('daily_tasks',[]); const it=list.find(x=>x.id===id);
+      if(it){ it.title=title.trim(); it.date=date||it.date; }
+      ls.set('daily_tasks',list); renderDaily();
+    }
+  });
+}
+function addDaily(){
+  const def = dailySel==='all'? todayStr() : (dailyDateFor(dailySel)||todayStr());
+  formModal({
+    title:'添加每日任务', saveText:'添加',
+    fields:[
+      {id:'dyTitle', label:'任务内容', placeholder:'例如：完成接口联调'},
+      {id:'dyDate', label:'日期', type:'date', value:def}
+    ],
+    onSave:([title,date])=>{
+      if(!title.trim()) return false;
+      const list=ls.get('daily_tasks',[]);
+      list.push({id:rid(), title:title.trim(), date:date||todayStr(), done:false});
+      ls.set('daily_tasks',list); renderDaily();
+    }
+  });
+}
+
+/* =================================================================== CENTER BOTTOM: Vertical Kanban */
+const KCOLS=[{id:'todo',name:'未开始',color:'#94a3b8'},{id:'doing',name:'进行中',color:'#0ea5e9'},{id:'done',name:'已完成',color:'#16a34a'}];
+let kanbanSearch='', kanbanActiveCols=new Set(); // 空集=显示全部列
+function ringSVG(pct){
+  const r=22,c=2*Math.PI*r,off=c*(1-pct/100);
+  return `<svg width="56" height="56" viewBox="0 0 56 56">
+    <circle cx="28" cy="28" r="${r}" fill="none" stroke="var(--border)" stroke-width="6"/>
+    <circle cx="28" cy="28" r="${r}" fill="none" stroke="var(--primary)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 28 28)"/>
+    <text x="28" y="32" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">${Math.round(pct)}%</text></svg>`;
+}
+function renderKanban(){
+  const cards = ls.get('kanban', []);
+  // P2-3：关键词搜索（按标题）
+  let view = cards;
+  const q = kanbanSearch.trim().toLowerCase();
+  if(q) view = view.filter(c=> c.title.toLowerCase().includes(q));
+  // KPI 始终基于全部卡片（不受筛选影响，提供全局概览）
+  const total = cards.length;
+  const done = cards.filter(c=>c.col==='done').length;
+  const pct = total? done/total*100 : 0;
+  $('#kpiRing').innerHTML = ringSVG(pct);
+  $('#kpiBars').innerHTML = KCOLS.map(k=>{
+    const n=cards.filter(c=>c.col===k.id).length; const w = total? n/total*100 : 0;
+    return `<div class="bar-row"><span class="bl">${k.name}</span><span class="bar-track"><span class="bar-fill" style="width:${w}%;background:${k.color}"></span></span><span class="bn">${n}</span></div>`;
+  }).join('');
+  // P2-3：列筛选按钮
+  $('#kbFilters').innerHTML = KCOLS.map(k=>
+    `<button class="kb-filter ${kanbanActiveCols.has(k.id)?'on':''}" data-col="${k.id}">${k.name}</button>`
+  ).join('');
+  $('#kbFilters').querySelectorAll('.kb-filter').forEach(b=>b.onclick=()=>{
+    if(kanbanActiveCols.has(b.dataset.col)) kanbanActiveCols.delete(b.dataset.col);
+    else kanbanActiveCols.add(b.dataset.col);
+    renderKanban();
+  });
+  // 渲染看板列：仅显示激活的列（空集=全部显示）
+  const showCols = kanbanActiveCols.size? kanbanActiveCols : new Set(KCOLS.map(k=>k.id));
+  $('#kanban').innerHTML = KCOLS.filter(k=>showCols.has(k.id)).map(k=>{
+    const origIdx = KCOLS.findIndex(x=>x.id===k.id); // 原始索引（用于上移/下移按钮判断，列筛选时仍正确）
+    const list = view.filter(c=>c.col===k.id);
+    const upBtn = origIdx>0? `<button data-id="{ID}" data-dir="up" title="上移"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg></button>`:'';
+    const downBtn = origIdx<KCOLS.length-1? `<button data-id="{ID}" data-dir="down" title="下移"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>`:'';
+    return `<div class="ksec" data-col="${k.id}">
+      <div class="ksh"><span class="dot" style="background:${k.color}"></span>${k.name}<span class="kc">${list.length}</span>
+        <button class="kadd2" data-col="${k.id}">+ 添加</button></div>
+      <div class="ks-cards">${list.length?list.map(c=>{
+        let u = origIdx>0? upBtn.replace('{ID}',c.id):'';
+        let d = origIdx<KCOLS.length-1? downBtn.replace('{ID}',c.id):'';
+        const editBtn=`<button class="ic-btn" data-edit="${c.id}" title="编辑">${ICON_EDIT}</button>`;
+        const delBtn=`<button class="ic-btn danger" data-del="${c.id}" title="删除">${ICON_TRASH}</button>`;
+        return `<div class="kcard" draggable="true" data-id="${c.id}"><span class="kt">${esc(c.title)}</span><span class="kact">${u}${d}${editBtn}${delBtn}</span></div>`;
+      }).join(''):'<div class="kempty">暂无</div>'}</div>
+    </div>`;
+  }).join('');
+  $('#kanban').querySelectorAll('.kact button[data-dir]').forEach(b=>b.onclick=()=>moveCard(b.dataset.id,b.dataset.dir));
+  $('#kanban').querySelectorAll('.kact button[data-edit]').forEach(b=>b.onclick=()=>openKanbanModal(null,b.dataset.edit));
+  $('#kanban').querySelectorAll('.kact button[data-del]').forEach(b=>b.onclick=()=>delCard(b.dataset.del));
+  $('#kanban').querySelectorAll('.kadd2').forEach(b=>b.onclick=()=>openKanbanModal(b.dataset.col));
+  // 拖拽：卡片拖到其他列换状态；放到某张卡片前可插入排序（触屏仍可用上移/下移按钮）
+  $('#kanban').querySelectorAll('.kcard').forEach(el=>{
+    el.addEventListener('dragstart', e=>{
+      e.dataTransfer.setData('text/plain', el.dataset.id);
+      e.dataTransfer.effectAllowed='move';
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', ()=>el.classList.remove('dragging'));
+  });
+  $('#kanban').querySelectorAll('.ksec').forEach(sec=>{
+    sec.addEventListener('dragover', e=>{ e.preventDefault(); sec.classList.add('drag-over'); });
+    sec.addEventListener('dragleave', e=>{ if(!sec.contains(e.relatedTarget)) sec.classList.remove('drag-over'); });
+    sec.addEventListener('drop', e=>{
+      e.preventDefault(); sec.classList.remove('drag-over');
+      const id=e.dataTransfer.getData('text/plain'); if(!id) return;
+      const cards=ls.get('kanban',[]);
+      const i=cards.findIndex(x=>x.id===id); if(i<0) return;
+      const moved=cards.splice(i,1)[0];
+      moved.col=sec.dataset.col;
+      const target=e.target.closest('.kcard');
+      if(target && target.dataset.id!==id){
+        const ti=cards.findIndex(x=>x.id===target.dataset.id);
+        cards.splice(ti<0?cards.length:ti, 0, moved);
+      }else{
+        cards.push(moved);
+      }
+      ls.set('kanban',cards); renderKanban();
+    });
+  });
+  adaptScroll();
+}
+function moveCard(id, dir){
+  const cards=ls.get('kanban',[]); const c=cards.find(x=>x.id===id); if(!c)return;
+  const i=KCOLS.findIndex(k=>k.id===c.col); const ni=dir==='up'?i-1:i+1;
+  if(ni<0||ni>=KCOLS.length)return; c.col=KCOLS[ni].id; ls.set('kanban',cards); renderKanban();
+}
+function openKanbanModal(col, editId){
+  const c = editId? ls.get('kanban',[]).find(x=>x.id===editId):null;
+  formModal({
+    title:(c?'编辑':'添加')+'看板任务', saveText:c?'保存':'添加',
+    fields:[
+      {id:'kTitle', label:'任务标题', value:c?c.title:'', placeholder:'例如：联调邮件接口'},
+      {id:'kCol', label:'状态', type:'select', value:c?c.col:(col||'todo'), options:KCOLS.map(k=>({value:k.id, name:k.name}))}
+    ],
+    onSave:([t,kCol])=>{
+      if(!t.trim()) return false;
+      const cards=ls.get('kanban',[]);
+      if(c){ c.title=t.trim(); c.col=kCol; }
+      else cards.push({id:rid(), title:t.trim(), col:kCol});
+      ls.set('kanban',cards); renderKanban();
+    }
+  });
+}
+function delCard(id){
+  const c=ls.get('kanban',[]).find(x=>x.id===id);
+  if(!c) return;
+  removeWithUndo('kanban', c, {label:'看板任务', rerender:renderKanban});
+}
+
+/* =================================================================== RIGHT TOP: Calendar */
+let calY, calM;
+function renderCalendar(){
+  const now=new Date(); calY=calY??now.getFullYear(); calM=calM??now.getMonth();
+  $('#calMonth').textContent = calY+'年'+(calM+1)+'月';
+  const events = ls.get('calendar_events', []);
+  const evDates = new Set(events.map(e=>e.date));
+  const dailyDates = new Set(ls.get('daily_tasks',[]).filter(x=>!x.done).map(x=>x.date));
+  const remDates = new Set(ls.get('reminders',[]).filter(x=>!x.done).map(x=>x.date));
+  const first = new Date(calY, calM, 1); const startW = first.getDay();
+  const daysInM = new Date(calY, calM+1, 0).getDate();
+  const daysInPrev = new Date(calY, calM, 0).getDate();
+  const t = todayStr();
+  let cells=''; const wd=['日','一','二','三','四','五','六'];
+  cells += wd.map(w=>`<div class="wd">${w}</div>`).join('');
+  for(let i=0;i<startW;i++){ const d=daysInPrev-startW+1+i; cells+=`<div class="cal-day other">${d}</div>`; }
+  for(let d=1;d<=daysInM;d++){
+    const ds=fmtDate(new Date(calY, calM, d));
+    const isToday = ds===t;
+    // 日历标记点：日程(主色) / 未完成每日任务(橙) / 未完成提醒(红)
+    const dots = (evDates.has(ds)?'<span class="dot"></span>':'')
+               + (dailyDates.has(ds)?'<span class="dot d-daily"></span>':'')
+               + (remDates.has(ds)?'<span class="dot d-rem"></span>':'');
+    cells+=`<div class="cal-day ${isToday?'today':''}" data-date="${ds}">${d}${dots?'<span class="dots">'+dots+'</span>':''}</div>`;
+  }
+  const tail = (7-((startW+daysInM)%7))%7;
+  for(let i=1;i<=tail;i++){ cells+=`<div class="cal-day other">${i}</div>`; }
+  $('#calGrid').innerHTML=cells;
+  $('#calGrid').querySelectorAll('.cal-day[data-date]').forEach(c=>c.onclick=()=>openEventModal(c.dataset.date));
+}
+
+/* =================================================================== RIGHT BOTTOM: Email */
+let mailSearch='', mailUnreadOnly=false;
+async function renderMail(force){
+  const cfg = ls.get('config',{}).emailApi||{};
+  if(force && cfg.url){
+    try{
+      const res = await apiFetch(cfg, {});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const j = await res.json();
+      const arr = Array.isArray(j)? j : (j.emails||j.data||j.list||[]);
+      const list = arr.map(e=>({id:e.id||e.message_id||rid(), from:e.from||e.sender||'未知', subject:e.subject||e.title||'(无主题)', date:e.date||e.time||e.received_at||'', snippet:e.snippet||e.preview||(e.body?String(e.body).slice(0,80):''), body:e.body||e.content||''}));
+      if(list.length){ ls.set('email_cache',list); }
+    }catch(e){ toast('邮件刷新失败，显示缓存内容'); }
+  }
+  const list = ls.get('email_cache', []).slice().sort((a,b)=> String(b.date||'').localeCompare(String(a.date||''))); // 最新在前
+  // P2-2：未读筛选 + 关键词搜索（可组合）
+  let view = list;
+  if(mailUnreadOnly) view = view.filter(m=>!m.read);
+  const q = mailSearch.trim().toLowerCase();
+  if(q) view = view.filter(m=> (m.from+' '+m.subject+' '+(m.snippet||'')+' '+(m.body||'')).toLowerCase().includes(q));
+  updateMailFilterUI();
+  $('#mailList').innerHTML = view.length? view.map(m=>
+    `<div class="mail-item ${m.read?'read':'unread'}" data-id="${m.id}">
+      <div class="m-top"><span class="m-unread"></span><span class="m-from">${esc(m.from)}</span>${m.via?`<span class="m-via">${esc(m.via)}</span>`:''}<span class="m-date">${esc(m.date)}</span></div>
+      <div class="m-sub">${esc(m.subject)}</div>
+      <div class="m-snip">${esc(m.snippet)}</div>
+      <div class="mail-actions"><button class="ic-btn danger" data-del="${m.id}" title="删除">${ICON_TRASH}</button></div>
+    </div>`).join('') : (list.length? '<div class="mail-empty">未找到匹配的邮件</div>' : '<div class="kempty">暂无邮件</div>');
+  $('#mailList').querySelectorAll('.mail-item').forEach(it=>it.onclick=()=>{
+    const m=list.find(x=>x.id===it.dataset.id); if(!m)return;
+    const wasUnread=!m.read;
+    m.read=true; ls.set('email_cache',list); if(wasUnread){ if(mailUnreadOnly) renderMail(false); else { it.classList.replace('unread','read'); updateMailFilterUI(); } }
+    openModal(`<h3>邮件详情<span class="x">×</span></h3>
+      <div class="field"><label>发件人</label><div>${esc(m.from)}</div></div>
+      <div class="field"><label>主题</label><div>${esc(m.subject)}</div></div>
+      <div class="field"><label>时间</label><div>${esc(m.date)}</div></div>
+      <div class="field"><label>正文</label><div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(m.body||m.snippet)}</div></div>`);
+  });
+  $('#mailList').querySelectorAll('[data-del]').forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    const id=b.dataset.del, item=list.find(x=>x.id===id);
+    if(!item) return;
+    removeWithUndo('email_cache', item, {label:'邮件', rerender:()=>renderMail(false)});
+  });
+}
+function updateMailFilterUI(){
+  const n = ls.get('email_cache', []).filter(m=>!m.read).length;
+  const btn = $('#btnMailUnread');
+  if(btn){ btn.textContent = '未读'+(n? ' '+n : ''); btn.classList.toggle('on', mailUnreadOnly); }
+}
+
+/* =================================================================== Modals */
+function openModal(html, center){ $('#drawer').innerHTML = html; const ov=$('#overlay'); ov.classList.toggle('modal-center', !!center); ov.classList.add('show'); }
+function closeModal(){ $('#overlay').classList.remove('show'); }
+$('#overlay').addEventListener('click', e=>{ if(e.target===$('#overlay')) closeModal(); });
+// 弹窗关闭按钮统一委托：所有 .x 元素点击即关闭，各弹窗无需单独绑定
+$('#drawer').addEventListener('click', e=>{ if(e.target.classList && e.target.classList.contains('x')) closeModal(); });
+function openEventModal(date){
+  const evs = ls.get('calendar_events', []).filter(e=>e.date===date);
+  openModal(`<h3>${date} 的日程<span class="x">×</span></h3>
+    <div id="evList">${evs.length?evs.map(e=>`<div class="hist-item" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(e.title)}</span><button class="btn btn-sm btn-ghost" data-evdate="${esc(date)}" data-evtitle="${esc(e.title)}">删除</button></div>`).join(''):'<div class="kempty">当天暂无安排</div>'}</div>
+    <div class="field" style="margin-top:10px"><label>新增日程</label><input id="evTitle" placeholder="例如：与设计评审"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="addEvent('${date}')">添加</button>`);
+  // 用 data 属性 + 事件绑定代替内联 onclick，日程标题含引号时不会破坏 JS 字符串
+  $('#evList').querySelectorAll('[data-evtitle]').forEach(b=>b.onclick=()=>delEvent(b.getAttribute('data-evdate'), b.getAttribute('data-evtitle')));
+}
+function addEvent(date){ const t=$('#evTitle').value.trim(); if(!t)return; const evs=ls.get('calendar_events',[]); evs.push({date,title:t}); ls.set('calendar_events',evs); closeModal(); renderCalendar(); }
+function delEvent(date,title){
+  const ev=ls.get('calendar_events',[]).find(e=>e.date===date&&e.title===title);
+  if(!ev) return;
+  removeWithUndo('calendar_events', ev, {
+    label:'日程', rerender:renderCalendar,
+    match:x=>x.date===ev.date && x.title===ev.title, // 日程无 id，按日期+标题定位
+    afterDelete:()=>openEventModal(date), // 删除后刷新当日日程列表
+    afterRestore:()=>{ if($('#overlay').classList.contains('show') && $('#evList')) openEventModal(date); }
+  });
+}
+function openReminderManager(){
+  const list = ls.get('reminders',[]).slice().sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
+  const overdue = r => r.date < todayStr();
+  const item = r => `<div class="hist-item" style="display:flex;align-items:center;gap:8px">
+      <button class="daily-check ${r.done?'on':''}" style="width:18px;height:18px;flex-shrink:0" data-done="${r.id}" aria-label="切换提醒完成">${CHK}</button>
+      <span style="flex:1;min-width:0;${r.done?'text-decoration:line-through;':''}color:${overdue(r)?'var(--danger)':'var(--text)'}">
+        <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.text)}</span>
+        <small style="color:var(--muted)">${fmtMD(r.date)}${overdue(r)?' · 逾期':''}</small>
+      </span>
+      <button class="ic-btn" data-edit="${r.id}" title="编辑">${ICON_EDIT}</button>
+      <button class="ic-btn danger" data-del="${r.id}" title="删除">${ICON_TRASH}</button>
+    </div>`;
+  openModal(`<h3>提醒管理<span class="x">×</span></h3>
+    <div id="remList">${list.length? list.map(item).join('') : '<div class="kempty">暂无提醒</div>'}</div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="field"><label>新增提醒内容</label><input id="rText" placeholder="例如：提交月报"></div>
+    <div class="field"><label>日期</label><input id="rDate" type="date" value="${todayStr()}"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="addReminder()">添加提醒</button>
+    <div class="hint">顶栏会显示最近 3 条未完成提醒，逾期项标红。</div>`);
+  $('#remList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>toggleRem(b.dataset.done));
+  $('#remList').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editReminder(b.dataset.edit));
+  $('#remList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delReminder(b.dataset.del));
+}
+function addReminder(){ const text=$('#rText').value.trim(); if(!text)return; const list=ls.get('reminders',[]); list.push({id:rid(), text, date:$('#rDate').value||todayStr(), done:false}); ls.set('reminders',list); renderReminders(); $('#rText').value=''; $('#rDate').value=todayStr(); openReminderManager(); }
+function toggleRem(id){ toggleDone('reminders', id, renderReminders); // 仅当「提醒管理」弹窗已打开时刷新它，避免从顶栏勾选时误弹窗
+  if($('#overlay').classList.contains('show') && $('#remList')) openReminderManager(); }
+function editReminder(id){
+  const r=ls.get('reminders',[]).find(x=>x.id===id); if(!r)return;
+  formModal({
+    title:'编辑提醒', saveText:'保存',
+    fields:[
+      {id:'erText', label:'提醒内容', value:r.text},
+      {id:'erDate', label:'日期', type:'date', value:r.date}
+    ],
+    onSave:([text,date])=>{
+      if(!text.trim()) return false;
+      const list=ls.get('reminders',[]); const it=list.find(x=>x.id===id);
+      if(it){ it.text=text.trim(); it.date=date||it.date; }
+      ls.set('reminders',list); renderReminders(); openReminderManager();
+    }
+  });
+}
+function delReminder(id){
+  const r=ls.get('reminders',[]).find(x=>x.id===id);
+  if(!r) return;
+  removeWithUndo('reminders', r, {
+    label:'提醒', rerender:renderReminders,
+    afterDelete:openReminderManager, // 删除来源是管理弹窗，保持弹窗刷新
+    afterRestore:()=>{ if($('#overlay').classList.contains('show') && $('#remList')) openReminderManager(); }
+  });
+}
+
+/* =================================================================== Settings */
+function openSettings(){
+  const cfg = ls.get('config',{});
+  openModal(`<h3>API 设置<span class="x">×</span></h3>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>纯文本编写 API</div>
+      <div class="field"><label>接口地址</label><input id="c_text_url" value="${esc(cfg.textApi?.url||'')}" placeholder="https://api.example.com/v1/chat/completions"></div>
+      <div class="field"><label>API Key</label><input id="c_text_key" value="${esc(cfg.textApi?.key||'')}"></div>
+      <div class="field"><label>模型名</label><input id="c_text_model" value="${esc(cfg.textApi?.model||'gpt-4o-mini')}"></div></div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>图片设计 API</div>
+      <div class="field"><label>接口地址</label><input id="c_img_url" value="${esc(cfg.imageApi?.url||'')}" placeholder="https://api.example.com/v1/images/generations"></div>
+      <div class="field"><label>API Key</label><input id="c_img_key" value="${esc(cfg.imageApi?.key||'')}"></div>
+      <div class="field"><label>模型名</label><input id="c_img_model" value="${esc(cfg.imageApi?.model||'dall-e-3')}"></div>
+      <div class="field"><label>尺寸</label><input id="c_img_size" value="${esc(cfg.imageApi?.size||'1024x1024')}"></div></div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>邮件列表 API</div>
+      <div class="field"><label>接口地址（GET，返回邮件数组）</label><input id="c_mail_url" value="${esc(cfg.emailApi?.url||'')}" placeholder="https://api.example.com/mails"></div>
+      <div class="field"><label>API Key（可选）</label><input id="c_mail_key" value="${esc(cfg.emailApi?.key||'')}"></div>
+      <div class="hint">接口需返回 JSON 数组，字段含 from / subject / date / snippet / body（程序自动兼容）。</div></div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/><path d="M12 13v7M8 20h8"/></svg>邮箱采集</div>
+      <div class="field"><label>已绑定账户</label><button class="btn" style="width:100%" onclick="openMailAccounts()">管理邮箱账户<span class="ac-count" id="maCount"></span></button></div>
+      <div class="hint">支持绑定 QQ / 163 / Outlook / Gmail / iCloud 邮箱，采集邮件到「邮件列表」。添加/授权/解绑在管理面板中完成。</div></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="field"><label>桌面通知</label><button class="btn" onclick="enableNotify()">开启今日提醒推送</button>
+      <div class="hint">开启后，每天首次打开工作台时通过系统通知推送今日与逾期的未完成提醒。以 file:// 方式打开时部分浏览器可能不支持。</div></div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveConfig()">保存配置</button>
+    <div class="hint">配置仅保存在本机浏览器（localStorage），不会上传到任何服务器。</div>`);
+  const maCount = $('#maCount');
+  if(maCount){ const n=ls.get('mail_accounts',[]).length; maCount.textContent = n? ' · '+n : ''; }
+}
+/* ---------- 邮箱采集：账户绑定 / 管理 / 采集 ---------- */
+function openMailAccounts(){
+  const list = ls.get('mail_accounts',[]);
+  const rows = list.length? list.map(a=>{
+    const p = MAIL_PROVIDERS[a.provider]||{name:a.provider};
+    return `<div class="hist-item ac-row">
+      <span class="ac-badge">${esc(p.name)}</span>
+      <span class="ac-mail" title="${esc(a.email)}（${esc(p.host||'')}）">${esc(a.email)}</span>
+      <button class="ic-btn" data-collect="${a.id}" title="采集该账户邮件">${ICON_SEARCH}</button>
+      <button class="ic-btn danger" data-del="${a.id}" title="解绑">${ICON_TRASH}</button>
+    </div>`;
+  }).join('') : '<div class="kempty">尚未绑定邮箱账户</div>';
+  openModal(`<h3>邮箱采集<span class="x">×</span></h3>
+    <div class="hint">浏览器无法直连 IMAP：采集通过「邮件列表 API」代理完成，请求头 X-Mail-Account 携带账户信息（服务商 / 邮箱 / IMAP 主机 / 授权凭证），由代理登录对应邮箱拉取邮件。授权凭证仅保存在本机浏览器。</div>
+    <div style="margin:10px 0;display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div class="data-row"><button class="btn btn-primary" style="flex:1" data-add>+ 添加邮箱账户</button><button class="btn" style="flex:1" data-collect-all>采集全部账户</button></div>`);
+  $('#drawer [data-add]').onclick=()=>addMailAccount();
+  $('#drawer [data-collect-all]').onclick=()=>collectAllAccounts();
+  $('#drawer').querySelectorAll('[data-collect]').forEach(b=>b.onclick=()=>collectMailAccount(b.dataset.collect));
+  $('#drawer').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    const a = ls.get('mail_accounts',[]).find(x=>x.id===b.dataset.del); if(!a) return;
+    removeWithUndo('mail_accounts', a, {label:'邮箱账户', rerender:openMailAccounts});
+  });
+}
+function addMailAccount(editId){
+  const a = editId? ls.get('mail_accounts',[]).find(x=>x.id===editId):null;
+  formModal({
+    title: a? '编辑邮箱账户':'添加邮箱账户',
+    saveText: a? '保存':'绑定',
+    fields:[
+      {id:'ma_provider', label:'邮箱服务商', type:'select', value:a?a.provider:'qq',
+        options:Object.keys(MAIL_PROVIDERS).map(k=>({value:k, name:MAIL_PROVIDERS[k].name+'（'+MAIL_PROVIDERS[k].host+'）'}))},
+      {id:'ma_email', label:'邮箱地址', value:a?a.email:'', placeholder:'you@example.com'},
+      {id:'ma_credential', label:'授权凭证（授权码 / 应用专用密码）', value:a?a.credential:'', placeholder:'仅保存在本机，由你的代理服务器使用'}
+    ],
+    onSave(vals){
+      const [provider,email,credential] = vals.map(v=>v.trim());
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('请输入正确的邮箱地址'); return false; }
+      if(!credential){ toast('请输入授权凭证（授权码或应用专用密码）'); return false; }
+      const list = ls.get('mail_accounts',[]);
+      if(a){ Object.assign(a,{provider,email,credential}); ls.set('mail_accounts',list); toast('账户已更新'); }
+      else { list.push({id:rid(), provider, email, credential}); ls.set('mail_accounts',list); toast('账户已绑定'); }
+      setTimeout(openMailAccounts, 60);
+    }
+  });
+}
+async function collectMailAccount(id, silent){
+  const a = ls.get('mail_accounts',[]).find(x=>x.id===id); if(!a) return 0;
+  const cfg = ls.get('config',{}).emailApi||{};
+  if(!cfg.url){ if(!silent) toast('请先在设置中配置「邮件列表 API」', 3500); return 0; }
+  const p = MAIL_PROVIDERS[a.provider]||{};
+  try{
+    const res = await apiFetch(cfg, {headers:{'X-Mail-Account': JSON.stringify({provider:a.provider, email:a.email, host:p.host||'', port:p.port||993, credential:a.credential})}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const j = await res.json();
+    const arr = Array.isArray(j)? j : (j.emails||j.data||j.list||[]);
+    const list = arr.map(e=>({id:e.id||e.message_id||rid(), from:e.from||e.sender||'未知', subject:e.subject||e.title||'(无主题)', date:e.date||e.time||e.received_at||'', snippet:e.snippet||e.preview||(e.body?String(e.body).slice(0,80):''), body:e.body||e.content||'', via:p.name||a.provider}));
+    if(list.length){
+      const cache = ls.get('email_cache',[]);
+      const seen = new Set(cache.map(m=>m.id));
+      cache.push(...list.filter(m=>!seen.has(m.id)));
+      ls.set('email_cache',cache);
+    }
+    if(!silent){ toast(list.length? '已采集 '+list.length+' 封邮件（'+a.email+'）':'该账户暂无新邮件'); renderMail(false); }
+    return list.length;
+  }catch(e){ if(!silent) toast('采集失败：'+apiErrMsg(e), 3500); return 0; }
+}
+async function collectAllAccounts(){
+  const list = ls.get('mail_accounts',[]);
+  if(!list.length){ toast('尚未绑定邮箱账户'); return; }
+  const cfg = ls.get('config',{}).emailApi||{};
+  if(!cfg.url){ toast('请先在设置中配置「邮件列表 API」', 3500); return; }
+  toast('正在采集 '+list.length+' 个账户…');
+  let total=0;
+  for(const a of list){ total += await collectMailAccount(a.id, true); }
+  renderMail(false);
+  toast(total? '共采集 '+total+' 封邮件':'各账户暂无新邮件');
+}
+function saveConfig(){
+  const cfg = {
+    textApi:{url:$('#c_text_url').value.trim(), key:$('#c_text_key').value.trim(), model:$('#c_text_model').value.trim()||'gpt-4o-mini'},
+    imageApi:{url:$('#c_img_url').value.trim(), key:$('#c_img_key').value.trim(), model:$('#c_img_model').value.trim()||'dall-e-3', size:$('#c_img_size').value.trim()||'1024x1024'},
+    emailApi:{url:$('#c_mail_url').value.trim(), key:$('#c_mail_key').value.trim()}
+  };
+  ls.set('config', cfg); closeModal(); toast('配置已保存'); renderMail(true);
+}
+
+/* ---------- 桌面通知（今日/逾期提醒，每日一次） ---------- */
+function enableNotify(){
+  if(!('Notification' in window)){ toast('当前浏览器不支持桌面通知'); return; }
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){ toast('已开启桌面通知'); pushReminderNotification(true); }
+    else toast('未获得通知权限，可在浏览器站点设置中开启', 3500);
+  }).catch(()=>toast('请求通知权限失败', 3000));
+}
+function pushReminderNotification(force){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const today=todayStr();
+  const open=ls.get('reminders',[]).filter(r=>!r.done && r.date<=today);
+  if(!open.length) return;
+  if(!force && ls.get('notified_on','')===today) return; // 每天只推一次
+  ls.set('notified_on', today);
+  try{
+    new Notification('Cuckoo 工作台 · 今日 '+open.length+' 条提醒', {
+      tag:'cuckoo-reminders-'+today,
+      body: open.slice(0,3).map(r=>(r.date<today?'[逾期] ':'')+r.text).join('\n')
+    });
+  }catch(e){}
+}
+
+/* =================================================================== Data */
+function openData(){
+  openModal(`<h3>数据备份与恢复<span class="x">×</span></h3>
+    <div class="data-row">
+      <button class="btn btn-primary" onclick="exportJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>导出 JSON</button>
+      <button class="btn" onclick="importJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>导入恢复</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="doImport(event)">
+    <div class="hint">导出会把全部本地数据打包成一个 JSON 文件；导入会覆盖当前同名数据。建议定期备份。</div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <button class="btn" style="width:100%;color:var(--warn)" onclick="resetExample()">恢复预置数据</button>
+    <button class="btn" style="width:100%;color:var(--danger);margin-top:8px" onclick="clearAll()">清空全部数据</button>`);
+}
+function exportJSON(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith(PREFIX)){ try{ data[k]=JSON.parse(localStorage.getItem(k)); }catch(e){ data[k]=localStorage.getItem(k); } } }
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cuckoo-backup-'+todayStr()+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000); closeModal();
+}
+function importJSON(){ $('#importFile').click(); }
+function doImport(e){ const f=e.target.files[0]; if(!f)return;
+  if(f.size > LIMITS.importMaxBytes){ toast('文件过大（超过 '+Math.round(LIMITS.importMaxBytes/1048576)+'MB），导入已取消', 3500); return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    let obj;
+    try{ obj=JSON.parse(r.result); }catch(err){ toast('导入失败：文件不是合法 JSON', 3500); return; }
+    if(typeof obj!=='object'||obj===null){ toast('导入失败：文件内容格式不支持', 3500); return; }
+    const entries=Object.keys(obj).filter(k=>k.startsWith(PREFIX)).map(k=>[k, typeof obj[k]==='string'?obj[k]:JSON.stringify(obj[k])]);
+    const snapKeys=Object.keys(localStorage).filter(k=>k.startsWith(PREFIX));
+    const snap={}; snapKeys.forEach(k=>snap[k]=localStorage.getItem(k));
+    try{ entries.forEach(([k,v])=>localStorage.setItem(k,v)); }
+    catch(err){
+      snapKeys.forEach(k=>localStorage.setItem(k, snap[k]));
+      Object.keys(localStorage).filter(k=>k.startsWith(PREFIX) && !(k in snap)).forEach(k=>localStorage.removeItem(k));
+      toast('导入失败：存储空间不足或无权写入，已撤销本次导入', 3500); return;
+    }
+    toast('导入成功，正在刷新…', 2000); closeModal(); location.reload();
+  };
+  r.onerror=()=>{ toast('导入失败：文件读取错误', 3500); };
+  r.readAsText(f);
+}
+function clearAll(){
+  uiConfirm('确定清空全部数据吗？此操作不可恢复。', ()=>{
+    for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k&&k.startsWith(PREFIX)) localStorage.removeItem(k); }
+    ls.set('seeded',true); location.reload();
+  }, {title:'清空全部数据', okText:'清空'});
+}
+function resetExample(){
+  uiConfirm('将用预置数据覆盖当前内容，确定吗？', ()=>{
+    for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k&&k.startsWith(PREFIX)) localStorage.removeItem(k); }
+    ls.set('seeded',false); seedIfEmpty(); location.reload();
+  }, {title:'恢复预置数据', okText:'覆盖'});
+}
+
+/* ---------- Backup hint ---------- */
+function checkBackup(){
+  let n=0; ['reminders','text_history','image_history','calendar_events','daily_tasks','kanban','email_cache'].forEach(k=>{ const v=ls.get(k,[]); if(Array.isArray(v)) n+=v.length; });
+  $('#backupHint').hidden = n<LIMITS.backupHint;
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- toast / confirm（统一交互弹层） ---------- */
+function showToast(o){
+  const t=document.createElement('div'); t.className='toast';
+  const s=document.createElement('span'); s.className='t-msg'; s.textContent=o.msg; t.appendChild(s);
+  const timer=setTimeout(()=>t.remove(), o.ms||1600);
+  if(o.action){
+    const b=document.createElement('button'); b.textContent=o.action;
+    b.onclick=()=>{ clearTimeout(timer); t.remove(); if(o.onAction) o.onAction(); };
+    t.appendChild(b);
+  }
+  document.body.appendChild(t);
+}
+function toast(msg, ms){ showToast({msg, ms}); }
+// 带撤销按钮的 toast：5 秒内可点击撤销，回调执行恢复动作
+function toastUndo(msg, onAction){ showToast({msg, action:'撤销', onAction, ms:5000}); }
+// 自定义确认弹窗：替代原生 confirm，风格与全站一致；opts: {title, okText, danger(false=主色确定键)}
+function uiConfirm(msg, onOk, opts){
+  opts=opts||{};
+  openModal('<h3>'+esc(opts.title||'确认操作')+'<span class="x">×</span></h3>'
+    +'<div style="font-size:14px;line-height:1.6;margin-bottom:16px">'+esc(msg)+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+    +'<button class="btn" data-cancel>取消</button>'
+    +'<button class="btn '+(opts.danger===false?'btn-primary':'btn-danger')+'" data-ok>'+esc(opts.okText||'确定')+'</button></div>', true);
+  $('#drawer [data-cancel]').onclick=closeModal;
+  $('#drawer [data-ok]').onclick=()=>{ closeModal(); if(onOk) onOk(); };
+}
+// 通用「确认删除 + 5 秒可撤销」：删除按 match 谓词定位，撤销按原索引回插。
+// opts: {label(名称前缀), match(x)(可选，默认按 id 匹配), rerender(), afterDelete(), afterRestore()}
+function removeWithUndo(listKey, item, opts){
+  opts=opts||{};
+  const match = opts.match || (x=>x.id===item.id);
+  const name = item.title||item.text||item.from||'';
+  const idx = ls.get(listKey,[]).findIndex(match);
+  if(idx<0) return;
+  const doRemove=()=>{
+    ls.set(listKey, ls.get(listKey,[]).filter(x=>!match(x)));
+    if(opts.rerender) opts.rerender();
+    if(opts.afterDelete) opts.afterDelete();
+  };
+  const doRestore=()=>{
+    const l=ls.get(listKey,[]);
+    l.splice(Math.min(idx,l.length),0,item);
+    ls.set(listKey,l);
+    if(opts.rerender) opts.rerender();
+    if(opts.afterRestore) opts.afterRestore();
+  };
+  uiConfirm('删除'+opts.label+'「'+name+'」？', ()=>{
+    doRemove();
+    toastUndo('已删除'+opts.label, doRestore);
+  }, {title:'删除'+opts.label, okText:'删除'});
+}
+// 通用表单弹窗：统一「标题 + 字段 + 保存按钮 + 关闭」结构。
+// fields: [{id,label,type:'input'|'date'|'select',value,placeholder,options:[{value,name}]}]
+// onSave(values) 返回 false 时弹窗保持打开（校验失败），否则自动关闭。
+function formModal(opts){
+  const fields = opts.fields.map(f=>{
+    const val = esc(f.value!=null?String(f.value):'');
+    const ph = f.placeholder? ' placeholder="'+esc(f.placeholder)+'"' : '';
+    if(f.type==='select') return '<div class="field"><label>'+esc(f.label)+'</label><select id="'+f.id+'">'
+      + f.options.map(o=>'<option value="'+esc(o.value)+'"'+(String(o.value)===String(f.value)?' selected':'')+'>'+esc(o.name)+'</option>').join('') + '</select></div>';
+    const type = f.type==='date'? ' type="date"' : '';
+    return '<div class="field"><label>'+esc(f.label)+'</label><input id="'+f.id+'"'+type+' value="'+val+'"'+ph+'></div>';
+  }).join('');
+  openModal('<h3>'+esc(opts.title)+'<span class="x">×</span></h3>'+fields
+    +'<button class="btn btn-primary" style="width:100%" data-save>'+esc(opts.saveText||'保存')+'</button>');
+  $('#drawer [data-save]').onclick=()=>{
+    const values = opts.fields.map(f=>$('#'+f.id).value);
+    if(opts.onSave(values)!==false) closeModal();
+  };
+}
+// 通用完成态切换：提醒 / 每日任务共用（列表项须含 done 字段与 id）
+function toggleDone(listKey, id, rerender){
+  const list=ls.get(listKey,[]);
+  const it=list.find(x=>x.id===id);
+  if(it){ it.done=!it.done; ls.set(listKey,list); }
+  rerender();
+}
+function copyText(t){ if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(t).then(()=>toast('已复制')).catch(()=>fallbackCopy(t)); } else fallbackCopy(t); }
+function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('已复制'); }catch(e){ toast('复制失败'); } ta.remove(); }
+function openLightbox(src){ $('#lbImg').src=src; $('#lightbox').classList.add('show'); }
+function closeLightbox(){ $('#lightbox').classList.remove('show'); }
+function dlLightbox(){ const src=$('#lbImg').src; const ext=(src.match(/^data:image\/(\w+)/)||[])[1]||'png'; const a=document.createElement('a'); a.href=src; a.download='cuckoo-image.'+(ext==='jpeg'?'jpg':ext); a.click(); }
+$('#lightbox').addEventListener('click', e=>{ if(e.target===$('#lightbox')||e.target.classList.contains('lb-close')) closeLightbox(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('#overlay').classList.contains('show')) closeModal(); if($('#lightbox').classList.contains('show')) closeLightbox(); } });
+function applyTheme(){ const dark=ls.get('theme','light')==='dark'; document.body.classList.toggle('dark', dark); }
+function toggleTheme(){ ls.set('theme', ls.get('theme','light')==='dark'?'light':'dark'); applyTheme(); }
+function fetchWithTimeout(url, opts={}, ms=15000){
+  const ctrl = new AbortController(); const id = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, Object.assign({}, opts, {signal:ctrl.signal})).finally(()=>clearTimeout(id));
+}
+// 统一 API 请求封装：body 非 null 自动加 JSON 头并转 POST；有 key 自动加 Bearer 认证
+function apiFetch(cfg, {method, body, timeout, headers:extraHeaders}={}){
+  const headers=Object.assign({}, extraHeaders||{});
+  if(body) headers['Content-Type']='application/json';
+  if(cfg.key) headers['Authorization']='Bearer '+cfg.key;
+  return fetchWithTimeout(cfg.url, {method:method||(body?'POST':'GET'), headers, body: body?JSON.stringify(body):undefined}, timeout||15000);
+}
+function apiErrMsg(e){ if(e && e.name==='AbortError') return '请求超时，请检查网络或接口地址'; return (e&&e.message)||'未知错误'; }
+
+/* ---------- Adaptive scroll (屏幕尺寸 + 内容自适应) ---------- */
+// 全端统一 page 模式：body 最小高度 100vh、随内容增长，整页滚动；顶栏 sticky 吸顶
+// 保留函数与 resize 监听，负责清理历史版本可能残留的内联 overflow 限制
+function adaptScroll(){
+  document.body.dataset.scroll = 'page';
+  document.querySelectorAll('.col-left,.col-center,.col-right,.card').forEach(el=>{ el.style.overflow=''; });
+}
+window.addEventListener('resize', adaptScroll);
+
+/* ---------- Events & init ---------- */
+// 静态 HTML 中的图标统一由 JS 常量注入（data-icon 占位），避免同一 SVG 多处内联
+const ICON_MAP={chevL:ICON_CHEV_L, chevR:ICON_CHEV_R, search:ICON_SEARCH, gen:ICON_GEN, img:ICON_IMG};
+document.querySelectorAll('[data-icon]').forEach(el=>{ el.insertAdjacentHTML('afterbegin', ICON_MAP[el.dataset.icon]||''); });
+
+applyTheme();
+$('#btnTheme').onclick=toggleTheme;
+$('#btnAddReminder').onclick=openReminderManager;
+$('#btnData').onclick=openData;
+$('#btnSettings').onclick=openSettings;
+$('#btnTextGen').onclick=genText;
+$('#btnTextCopy').onclick=()=>copyText($('#textResult').textContent.trim());
+$('#btnImgGen').onclick=genImage;
+// 文本草稿：输入自动保存，启动时恢复；Ctrl/Cmd+Enter 快捷生成
+$('#textInput').value = ls.get('text_draft','');
+$('#textInput').addEventListener('input', e=>{ ls.set('text_draft', e.target.value.slice(0,5000)); });
+$('#textInput').addEventListener('keydown', e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') genText(); });
+$('#imgPrompt').addEventListener('keydown', e=>{ if(e.key==='Enter') genImage(); });
+$('#btnTextClear').onclick=()=>{ $('#textInput').value=''; ls.del('text_draft'); $('#textResult').textContent='在「设置」中配置文本 API 后即可使用。'; $('#textInput').focus(); };
+$('#btnTextHistClear').onclick=()=>uiConfirm('清空全部文本生成历史？', ()=>{ ls.set('text_history',[]); renderTextHist(); }, {title:'清空历史', okText:'清空'});
+$('#btnImgClear').onclick=()=>uiConfirm('清空全部生成图片？', ()=>{ ls.set('image_history',[]); renderImgGrid(); $('#imgStage').innerHTML='在「设置」中配置图像 API 后即可生成。'; }, {title:'清空图片', okText:'清空'});
+$('#btnMailRefresh').onclick=()=>renderMail(true);
+$('#mailSearch').addEventListener('input', e=>{ mailSearch=e.target.value; renderMail(false); });
+$('#btnMailUnread').onclick=()=>{ mailUnreadOnly=!mailUnreadOnly; updateMailFilterUI(); renderMail(false); };
+$('#kanbanSearch').addEventListener('input', e=>{ kanbanSearch=e.target.value; renderKanban(); });
+$('#btnDailyAdd').onclick=addDaily;
+$('#dailyLeft').onclick=()=>$('#dailyScroll').scrollBy({left:-240,behavior:'smooth'});
+$('#dailyRight').onclick=()=>$('#dailyScroll').scrollBy({left:240,behavior:'smooth'});
+$('#calPrev').onclick=()=>{ calM--; if(calM<0){calM=11;calY--;} renderCalendar(); };
+$('#calNext').onclick=()=>{ calM++; if(calM>11){calM=0;calY++;} renderCalendar(); };
+
+// 一次性清理：移除旧版本预置的示例问答与示例设计图（仅清空这两个教程数据源，不影响其他数据）
+if(!ls.get('demo_cleaned', false)){
+  ls.set('text_history', []);
+  ls.set('image_history', []);
+  ls.set('demo_cleaned', true);
+}
+seedIfEmpty();
+renderReminders();
+renderTextHist();
+renderImgGrid();
+renderDaily();
+renderKanban();
+renderCalendar();
+renderMail(false);
+checkBackup();
+adaptScroll();
+pushReminderNotification(false);
+</script>
+</body>
+</html>
