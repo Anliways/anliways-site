@@ -130,7 +130,18 @@ python3 -m http.server 8080
 
 无需改代码即可在线维护内容：访问 `https://www.anliways.com/admin/`（不入站内导航，也不会被搜索引擎收录）。
 
-- **身份验证**：GitHub Fine-grained PAT。创建方式：`github.com/settings/personal-access-tokens/new` → Repository access 选 "Only select repositories" → 勾选 `anliways-site` → Permissions 中 Contents 选 "Read and write"。令牌仅存于浏览器本地，只发往 api.github.com。
+- **登录方式**：用户名 + 密码（首位注册者自动成为唯一管理员，之后注册入口关闭）。会话以 HMAC 签名的 HttpOnly Cookie 保持（默认 7 天，可勾选 30 天）。
 - **功能模块**：项目管理（增删改 projects.json 及子项/直达入口）、博客管理（新建/编辑/删除文章，自动同步 posts.json 与 posts/<id>.md，满足 CI 校验规则）。
-- **发布机制**：通过 GitHub Git Data API 原子化提交到 main 分支，随后自动触发 CI 校验、RSS 回写与 Vercel 部署。
-- **安全防护**：页面返回 `X-Robots-Tag: noindex`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer` 响应头；robots.txt 屏蔽抓取；提交失败自动回滚本地状态。
+- **发布机制**：`/api/content` 服务端函数代理 GitHub 提交（Git Data API 原子化多文件提交），随后自动触发 CI 校验、RSS 回写与 Vercel 部署。
+- **安全设计**：密码 scrypt 加盐哈希，账户数据 AES-256-GCM 加密后存于 `admin-data/users.json`；GitHub 令牌只存在于 Vercel 环境变量，前端全程不接触；登录失败按 IP 限流（15 分钟 10 次）；未登录访问内容接口一律 401；页面返回 `X-Robots-Tag: noindex`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`。
+
+### 服务端环境变量（一次性配置）
+
+在 Vercel 项目 → Settings → Environment Variables 添加：
+
+| 变量名 | 值 |
+|---|---|
+| `GITHUB_TOKEN` | Fine-grained PAT（仅 anliways-site 仓库，Contents: Read and write） |
+| `SESSION_SECRET` | 任意长随机字符串（用于会话签名与账户数据加密，请妥善保管） |
+
+添加后重新部署即可使用。

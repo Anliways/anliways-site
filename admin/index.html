@@ -27,6 +27,10 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
 #login-view h1 { font-size:20px; margin-bottom:6px; }
 #login-view p.hint { font-size:13px; color:rgba(255,255,255,.55); line-height:1.7; margin-bottom:18px; }
 .login-error { color:#ff453a; font-size:13px; margin-top:10px; min-height:18px; }
+.mode-switch { font-size:13px; color:#7ab8ff; background:none; border:none; padding:0; text-decoration:underline; }
+.check-row { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.check-row label { margin:0; display:flex; align-items:center; gap:6px; font-size:13px; color:rgba(255,255,255,.6); }
+.check-row input { width:auto; }
 
 /* 主界面 */
 #app-view { max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
@@ -56,22 +60,28 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
 </head>
 <body>
 
-<!-- 登录视图 -->
+<!-- 登录 / 注册视图 -->
 <div id="login-view">
-  <h1>🔐 anliways 管理后台</h1>
-  <p class="hint">本后台通过 GitHub 令牌直接读写网站仓库，提交后自动部署。<br>
-  请粘贴 <b>Fine-grained PAT</b>（仅需授予 anliways/anliways-site 仓库的 Contents 读写权限）。令牌只保存在本浏览器，不会提交到任何服务器。</p>
-  <input type="password" id="token-input" placeholder="github_pat_… / ghp_…" autocomplete="off">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
-    <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.6);">
-      <input type="checkbox" id="remember-cb" style="width:auto;"> 在本机记住（30 天）
-    </label>
-    <button class="btn btn-primary" id="login-btn" style="min-width:90px;">登录</button>
+  <h1 id="lv-title">🔐 anliways 管理后台</h1>
+  <p class="hint" id="lv-hint">请使用管理员账户登录。会话通过安全 Cookie 保持，关闭浏览器后仍然有效。</p>
+
+  <div id="register-only" class="hidden">
+    <p class="hint" style="color:#ffd60a;">检测到尚未创建管理员账户。首位注册者将成为本站唯一管理员，此后注册入口自动关闭。</p>
+  </div>
+
+  <label>用户名（3-20 位英文 / 数字 / _ / -）</label>
+  <input id="username-input" autocomplete="username">
+  <label>密码（至少 8 位）</label>
+  <input type="password" id="password-input" autocomplete="current-password">
+
+  <div class="check-row" id="remember-row">
+    <label><input type="checkbox" id="remember-cb"> 保持登录 30 天</label>
+    <button class="mode-switch" id="mode-switch-btn"></button>
+  </div>
+  <div style="margin-top:14px;">
+    <button class="btn btn-primary" id="submit-btn" style="width:100%;padding:11px;">登录</button>
   </div>
   <div class="login-error" id="login-error"></div>
-  <p class="hint" style="margin-top:14px;border-top:1px solid #2c2c2e;padding-top:14px;">
-    令牌创建：github.com/settings/personal-access-tokens/new → Repository access 选 "Only select repositories" → anliways-site → Permissions 里 Contents 选 "Read and write"。
-  </p>
 </div>
 
 <!-- 主视图 -->
@@ -143,86 +153,108 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
 
 <script>
 'use strict';
-const REPO = 'Anliways/anliways-site';
-const BRANCH = 'main';
-const TOKEN_KEY = 'anliways_admin_token';
-let token = sessionStorage.getItem(TOKEN_KEY) || '';
+const $ = id => document.getElementById(id);
 let projects = [], posts = [];
+let loginMode = 'login'; // 'login' | 'register'
 
 /* ---------- 基础设施 ---------- */
-const $ = id => document.getElementById(id);
 function toast(msg, isErr) {
   const t = $('toast');
   t.textContent = msg; t.className = isErr ? 'err' : ''; t.style.display = 'block';
   clearTimeout(t._tm); t._tm = setTimeout(() => t.style.display = 'none', 3500);
 }
-async function gh(path, opts = {}) {
-  const res = await fetch('https://api.github.com' + path, {
-    ...opts,
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-      ...(opts.headers || {})
-    }
+const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function api(action, payload, method) {
+  const url = '/api/auth?action=' + encodeURIComponent(action);
+  const res = await fetch(url, {
+    method: method || (payload !== undefined ? 'POST' : 'GET'),
+    headers: payload !== undefined ? { 'Content-Type': 'application/json' } : {},
+    body: payload !== undefined ? JSON.stringify(payload) : undefined,
+    credentials: 'same-origin'
   });
-  if (res.status === 401) throw new Error('令牌无效或已过期（401）');
-  if (res.status === 403) throw new Error('权限不足或触发 GitHub 限流（403），请检查令牌的 Contents 读写权限');
-  if (!res.ok) throw new Error('GitHub API 错误 ' + res.status + '：' + path);
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('请求失败 ' + res.status));
+  return data;
 }
-const b64decode = s => decodeURIComponent(escape(atob(s.replace(/\n/g, ''))));
-const b64encode = s => btoa(unescape(encodeURIComponent(s)));
-
-/* 原子化多文件提交：blob → tree → commit → 更新分支引用 */
-async function commitFiles(files, message) {
-  const ref = await gh(`/repos/${REPO}/git/ref/heads/${BRANCH}`);
-  const baseSha = ref.object.sha;
-  const baseCommit = await gh(`/repos/${REPO}/git/commits/${baseSha}`);
-  const tree = [];
-  for (const f of files) {
-    if (f.content === null) { tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null }); continue; }
-    const blob = await gh(`/repos/${REPO}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: f.content, encoding: 'utf-8' }) });
-    tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
-  }
-  const newTree = await gh(`/repos/${REPO}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: baseCommit.tree.sha, tree }) });
-  const commit = await gh(`/repos/${REPO}/git/commits`, { method: 'POST', body: JSON.stringify({ message, tree: newTree.sha, parents: [baseSha] }) });
-  await gh(`/repos/${REPO}/git/refs/heads/${BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha, force: false }) });
-  return commit.sha;
+async function apiRead(path) {
+  const res = await fetch('/api/content?path=' + encodeURIComponent(path), { credentials: 'same-origin' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('读取失败 ' + res.status));
+  return data.content;
+}
+async function apiCommit(files, message) {
+  const res = await fetch('/api/content', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ files, message })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('提交失败 ' + res.status));
+  return data;
 }
 
-/* ---------- 登录 ---------- */
-async function tryLogin(tk, silent) {
-  token = tk.trim();
-  if (!token) { if (!silent) $('login-error').textContent = '请输入令牌'; return false; }
+/* ---------- 登录 / 注册视图 ---------- */
+function setLoginMode(mode, registered) {
+  loginMode = mode;
+  const isReg = mode === 'register';
+  $('lv-title').textContent = isReg ? '🔧 创建管理员账户' : '🔐 anliways 管理后台';
+  $('lv-hint').textContent = isReg
+    ? '首位注册者将成为本站唯一管理员。密码经 scrypt 加盐哈希存储，请牢记。'
+    : '请使用管理员账户登录。会话通过安全 Cookie 保持，关闭浏览器后仍然有效。';
+  $('register-only').classList.toggle('hidden', !registered);
+  $('remember-row').classList.toggle('hidden', isReg);
+  $('submit-btn').textContent = isReg ? '创建账户并登录' : '登录';
+  $('mode-switch-btn').textContent = isReg ? '返回登录' : '注册新管理员';
+  $('login-error').textContent = '';
+}
+$('mode-switch-btn').onclick = () => setLoginMode(loginMode === 'login' ? 'register' : 'login', true);
+
+$('submit-btn').onclick = async () => {
+  const username = $('username-input').value.trim();
+  const password = $('password-input').value;
+  $('submit-btn').disabled = true;
+  $('login-error').textContent = '';
   try {
-    const me = await gh('/user');
-    await gh('/repos/' + REPO); // 校验仓库访问权限
-    sessionStorage.setItem(TOKEN_KEY, token);
-    if ($('remember-cb').checked) localStorage.setItem(TOKEN_KEY, token);
-    enterApp(me.login || 'github-user');
-    return true;
+    const data = await api(loginMode, { username, password, remember: $('remember-cb').checked });
+    enterApp(data.username);
   } catch (e) {
-    if (silent) { localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY); }
-    if (!silent) $('login-error').textContent = e.message;
-    else $('login-error').textContent = '记住的令牌已失效，请重新输入';
-    return false;
+    $('login-error').textContent = e.message;
+  } finally {
+    $('submit-btn').disabled = false;
   }
-}
-function enterApp(login) {
+};
+$('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('submit-btn').click(); });
+
+function enterApp(username) {
   $('login-view').classList.add('hidden');
   $('app-view').classList.remove('hidden');
-  $('whoami').textContent = '· ' + login;
+  $('whoami').textContent = '· ' + username;
   loadAll();
 }
+
+async function boot() {
+  // 先尝试恢复会话；未登录时探测是否已有管理员
+  try {
+    const me = await api('me');
+    enterApp(me.username);
+    return;
+  } catch (_) { /* 未登录，继续 */ }
+  try {
+    const init = await api('init');
+    setLoginMode(init.registered ? 'login' : 'register', init.registered);
+  } catch (e) {
+    setLoginMode('login', true);
+    $('login-error').textContent = e.message;
+  }
+}
+
 async function loadAll() {
   try {
-    const [pj, ps] = await Promise.all([
-      gh(`/repos/${REPO}/contents/projects.json?ref=${BRANCH}`),
-      gh(`/repos/${REPO}/contents/posts.json?ref=${BRANCH}`)
-    ]);
-    projects = JSON.parse(b64decode(pj.content));
-    posts = JSON.parse(b64decode(ps.content));
+    const [pj, ps] = await Promise.all([apiRead('projects.json'), apiRead('posts.json')]);
+    projects = JSON.parse(pj);
+    posts = JSON.parse(ps);
     renderProjects(); renderPosts();
   } catch (e) { toast('加载数据失败：' + e.message, true); }
 }
@@ -299,7 +331,7 @@ $('pf-save').onclick = async () => {
   if (pfEditIdx >= 0) projects[pfEditIdx] = item; else projects.push(item);
   $('pf-status').textContent = '正在提交…';
   try {
-    await commitFiles(
+    await apiCommit(
       [{ path: 'projects.json', content: JSON.stringify(projects, null, 2) + '\n' }],
       (pfEditIdx >= 0 ? 'chore(admin): 更新项目 ' : 'feat(admin): 新增项目 ') + id);
     toast('✅ 已提交，Vercel 部署约 1 分钟后生效');
@@ -315,14 +347,13 @@ async function deleteProject(idx) {
   if (!confirm('确定删除项目「' + p.title_zh + '」？将直接发布到线上。')) return;
   projects.splice(idx, 1);
   try {
-    await commitFiles([{ path: 'projects.json', content: JSON.stringify(projects, null, 2) + '\n' }], 'chore(admin): 删除项目 ' + p.id);
+    await apiCommit([{ path: 'projects.json', content: JSON.stringify(projects, null, 2) + '\n' }], 'chore(admin): 删除项目 ' + p.id);
     toast('✅ 已删除并提交'); renderProjects();
   } catch (e) { projects.splice(idx, 0, p); toast('删除失败：' + e.message, true); }
 }
 
 /* ---------- 博客管理 ---------- */
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
-const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function zhDate() { const d = new Date(); return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
 function renderPosts() {
   const box = $('posts-list');
@@ -349,8 +380,7 @@ async function openPostForm(idx) {
     $('ptf-date').value = p.date || ''; $('ptf-summary').value = p.summary || '';
     $('ptf-status').textContent = '正在加载正文…';
     try {
-      const md = await gh(`/repos/${REPO}/contents/posts/${p.id}.md?ref=${BRANCH}`);
-      $('ptf-body').value = b64decode(md.content);
+      $('ptf-body').value = await apiRead('posts/' + p.id + '.md');
       $('ptf-status').textContent = '';
     } catch (e) { $('ptf-status').textContent = '正文加载失败：' + e.message; }
   } else {
@@ -377,10 +407,10 @@ $('ptf-save').onclick = async () => {
   if (summary) entry.summary = summary;
   const nextPosts = posts.filter(p => p.id !== id).concat([entry]);
   // CI 校验规则：posts.json 与 posts/ 目录必须一一对应
-  const files = [{ path: 'posts.json', content: JSON.stringify(nextPosts, null, 2) + '\n' }, { path: `posts/${id}.md`, content: $('ptf-body').value }];
+  const files = [{ path: 'posts.json', content: JSON.stringify(nextPosts, null, 2) + '\n' }, { path: 'posts/' + id + '.md', content: $('ptf-body').value }];
   $('ptf-status').textContent = '正在提交…';
   try {
-    await commitFiles(files, (isNew ? 'post(admin): 发布文章 ' : 'post(admin): 更新文章 ') + id);
+    await apiCommit(files, (isNew ? 'post(admin): 发布文章 ' : 'post(admin): 更新文章 ') + id);
     posts = nextPosts;
     toast('✅ 已提交，部署与 RSS 更新约 1-2 分钟');
     $('post-form').classList.add('hidden');
@@ -392,25 +422,22 @@ async function deletePost(idx) {
   if (!confirm('确定删除文章「' + p.title + '」？将同时删除 Markdown 文件并发布。')) return;
   const nextPosts = posts.filter((_, i) => i !== idx);
   try {
-    await commitFiles([
+    await apiCommit([
       { path: 'posts.json', content: JSON.stringify(nextPosts, null, 2) + '\n' },
-      { path: `posts/${p.id}.md`, content: null }
+      { path: 'posts/' + p.id + '.md', content: null }
     ], 'post(admin): 删除文章 ' + p.id);
     posts = nextPosts;
     toast('✅ 已删除并提交'); renderPosts();
   } catch (e) { toast('删除失败：' + e.message, true); }
 }
 
-/* ---------- 事件绑定 ---------- */
-$('login-btn').onclick = () => tryLogin($('token-input').value, false);
-$('token-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin($('token-input').value, false); });
-$('logout-btn').onclick = () => { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY); location.reload(); };
+/* ---------- 退出 ---------- */
+$('logout-btn').onclick = async () => {
+  try { await api('logout'); } catch (_) {}
+  location.reload();
+};
 
-/* 启动：优先使用已记住的令牌静默登录 */
-(function () {
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) { $('token-input').value = saved; $('remember-cb').checked = true; tryLogin(saved, true); }
-})();
+boot();
 </script>
 </body>
 </html>
