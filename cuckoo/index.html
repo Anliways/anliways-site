@@ -56,7 +56,7 @@
   .rem-done svg{width:13px;height:13px}
   .rem-empty{color:var(--muted);font-size:13px;padding:6px 4px}
   .top-actions{display:flex;gap:8px;flex-shrink:0}
-  .btn{border:1px solid var(--border); background:#fff; color:var(--text); border-radius:10px; padding:8px 12px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px;}
+  .btn{border:1px solid var(--border); background:#fff; color:var(--text); border-radius:10px; padding:8px 12px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; white-space:nowrap; flex-shrink:0;}
   .btn svg{width:16px;height:16px}
   .btn:hover{border-color:var(--border-strong);background:#f8fafc}
   .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-d));border-color:var(--primary-d);color:#fff;box-shadow:0 2px 8px rgba(13,148,136,.28)}
@@ -80,11 +80,11 @@
   .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:16px}
   .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:16px}
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; min-height:0;}
-  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .card-head .ttl{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .card-head .ttl{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px;white-space:nowrap;flex-shrink:0}
   /* 卡片标题图标改为「色块徽章」：柔和底色 + 圆角，建立模块识别度 */
   .card-head .ttl svg{width:32px;height:32px;padding:7px;border-radius:9px;background:var(--primary-soft);color:var(--primary);flex-shrink:0}
-  .card-head .act{margin-left:auto;display:flex;gap:6px}
+  .card-head .act{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
 
   /* ---------- Text writer ---------- */
   /* 左栏合并卡片组：文本编写 + 图片设计 同处一张卡片，虚线分隔保持层次 */
@@ -151,7 +151,7 @@
   .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--primary),var(--primary-d));transition:width .3s ease}
   .bar-row .bn{width:30px;text-align:right;color:var(--muted)}
   .ksec{border:1px solid var(--border);border-radius:10px;padding:9px;margin-bottom:8px;background:#fff}
-  .ksec .ksh{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px}
+  .ksec .ksh{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px;white-space:nowrap}
   .ksec .ksh .dot{width:9px;height:9px;border-radius:50%}
   .ksec .ksh .kc{margin-left:auto;color:var(--muted);font-weight:400;font-size:12px}
   .ksec .ksh .kadd2{border:1px dashed var(--border);background:#fff;border-radius:6px;padding:2px 9px;font-size:12px;color:var(--muted)}
@@ -230,7 +230,7 @@
   .field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;}
   .field input,.field select{min-height:40px}
   .sec{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
-  .sec .sec-t{font-weight:600;font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .sec .sec-t{font-weight:600;font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:7px;white-space:nowrap}
   .sec .sec-t svg{width:26px;height:26px;padding:5px;border-radius:7px;background:var(--primary-soft);color:var(--primary)}
   .data-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .hint{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:6px}
