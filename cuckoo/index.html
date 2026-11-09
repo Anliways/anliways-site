@@ -13,9 +13,11 @@
 if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost','127.0.0.1'].includes(location.hostname))){
   addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
+// 主题防闪烁：深色用户在 body 渲染前先把 html 底色刷为深色，避免首帧白闪（applyTheme 中还原）
+try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentElement.style.backgroundColor='#181b1e'; }catch(e){}
 </script>
-<!-- 云服务 SDK（CDN IIFE）：登录 + 云备份；加载失败时页面其余功能不受影响 -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+<!-- 云服务 SDK（CDN IIFE）：登录 + 云备份；defer 非阻塞加载，初始化在 DOMContentLoaded 兜底执行（失败不影响其余功能） -->
+<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 <title>Cuckoo 工作台</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE2IDExdjVsMy41IDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <style>
@@ -27,6 +29,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
     --shadow:0 1px 2px rgba(16,24,40,.05),0 2px 6px rgba(16,24,40,.05);
     --shadow-pop:0 8px 24px rgba(16,24,40,.12);
     --topbar-h:60px;
+    /* 流式间距：随视口宽度在 12–20px 间缩放，卡片间距与内边距自适应各尺寸屏幕 */
+    --gap:clamp(12px, 1vw, 20px);
+    --card-pad:clamp(14px, 1.1vw, 22px);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -85,11 +90,11 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
 
   /* ---------- Layout (左-中-右) ---------- */
   /* 页面级滚动：主区自然高度，内容随页面下滚；顶栏 sticky 吸顶 */
-  .main{flex:1; display:flex; gap:16px; padding:16px}
-  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:16px}
-  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:16px}
-  .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:16px}
-  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; min-height:0;}
+  .main{flex:1; display:flex; gap:var(--gap); padding:var(--gap)}
+  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
+  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
+  .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:var(--card-pad); display:flex; flex-direction:column; min-height:0;}
   .card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
   .card-head .ttl{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px;white-space:nowrap;flex-shrink:0}
   /* 卡片标题图标改为「色块徽章」：柔和底色 + 圆角，建立模块识别度 */
@@ -123,7 +128,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .img-prompt input{flex:1;border:1px solid var(--border);border-radius:10px;padding:9px 10px;min-height:42px}
   .img-stage{margin-top:10px;border:2px dashed var(--border);border-radius:10px;min-height:130px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;overflow:hidden;background:#fafafa;}
   .img-stage img{max-width:100%;max-height:220px;border-radius:8px;display:block}
-  .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+  .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin-top:10px}
   .img-grid img{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--border);object-fit:cover;cursor:pointer;transition:transform .18s,box-shadow .18s}
   .img-grid img:hover{transform:scale(1.04);box-shadow:var(--shadow);position:relative;z-index:1}
   .spin{width:18px;height:18px;border:2px solid #cbd5e1;border-top-color:var(--primary);border-radius:50%;animation:sp 0.8s linear infinite;display:inline-block}
@@ -166,7 +171,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .daily-scroll{flex:1;display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;scroll-behavior:smooth}
   .daily-scroll::-webkit-scrollbar{height:6px}
   .daily-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-  .daily-card{min-width:190px;max-width:240px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .18s,transform .18s}
+  .daily-card{min-width:190px;max-width:clamp(240px, 15vw, 300px);background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,box-shadow .18s,transform .18s}
   .daily-card:not(.done):hover{border-color:var(--border-strong);box-shadow:var(--shadow);transform:translateY(-1px)}
   .daily-card.done{opacity:.55}
   .daily-card .dc-top{display:flex;align-items:center;gap:8px}
@@ -303,10 +308,10 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
     #emailCard{flex:1 1 320px}
   }
 
-  /* ---------- 大屏 (>1600)：内容限宽居中，避免过度拉伸 ---------- */
+  /* ---------- 大屏 (>1600)：内容限宽居中，卡片与间距随 --gap/--card-pad 放大，充分利用空间 ---------- */
   @media (min-width:1600px){
-    .main{max-width:1680px; margin:0 auto}
-    .backup-hint{max-width:1680px; margin:0 auto; width:calc(100% - 32px)}
+    .main{max-width:1840px; margin:0 auto}
+    .backup-hint{max-width:1840px; margin:0 auto; width:calc(100% - var(--gap)*2)}
   }
 
   /* ---------- Theme toggle ---------- */
@@ -805,7 +810,7 @@ async function genText(overrideQ){
 function renderImgGrid(){
   const h = ls.get('image_history', []);
   $('#imgGrid').innerHTML = h.length? h.slice().reverse().map(it=>
-    `<img src="${it.url}" alt="${esc(it.prompt)}" data-url="${encodeURIComponent(it.url)}" title="${esc(it.prompt)}">`
+    `<img src="${it.url}" alt="${esc(it.prompt)}" data-url="${encodeURIComponent(it.url)}" title="${esc(it.prompt)}" loading="lazy" decoding="async">`
   ).join('') : '<div class="kempty" style="grid-column:1/-1">暂无生成图片</div>';
   $('#imgGrid').querySelectorAll('img').forEach(im=>im.onclick=()=>openLightbox(decodeURIComponent(im.getAttribute('data-url'))));
 }
@@ -1697,15 +1702,17 @@ const CLOUD_CFG={
 };
 const CLOUD_APP_URL=CLOUD_CFG.endpoint; // 云同步仅在完整版发布域名开放
 let cloud=null, cloudSession=null;
-try{
-  if(window.WorkBuddyCloud && WorkBuddyCloud.createWorkBuddyCloud){
+function initCloud(){
+  if(cloud || !(window.WorkBuddyCloud && WorkBuddyCloud.createWorkBuddyCloud)) return;
+  try{
     cloud=WorkBuddyCloud.createWorkBuddyCloud({
       endpoint:CLOUD_CFG.endpoint,
       oauthRelayBaseUrl:CLOUD_CFG.oauthRelayBaseUrl,
       publishableKey:CLOUD_CFG.publishableKey
     });
-  }
-}catch(e){ console.warn('[cuckoo] 云服务初始化失败', e && e.message); }
+  }catch(e){ console.warn('[cuckoo] 云服务初始化失败', e && e.message); }
+}
+initCloud(); // 兼容同步加载场景（如本地缓存直开）；defer 下由下方 DOMContentLoaded 兜底
 const onCloudApp=()=> location.origin===CLOUD_APP_URL;
 function cloudErrMsg(e){ return (e&&(e.message||e.msg))||'未知错误'; }
 // 云备份内容：全部业务数据；凭证/配置类键不上传（邮箱授权码、API Key 仅存本机）
@@ -1825,7 +1832,9 @@ function bindAccountActions(){
   $('#acctLogout').onclick=async()=>{ await cloud.auth.signOut(); cloudSession=null; toast('已退出登录'); renderAccount(); };
 }
 // OAuth 回调分发（微信）：站点根路径收到 ?code&provider=wechat 时完成登录并清理 URL
-(async function cloudAuthDispatch(){
+// SDK 为 defer 加载，回调处理须待其初始化完成后执行（DOMContentLoaded 晚于 defer 脚本）
+async function handleOAuthCallback(){
+  initCloud();
   if(!cloud) return;
   try{
     const url=new URL(location.href);
@@ -1840,7 +1849,8 @@ function bindAccountActions(){
       setTimeout(()=>{ if(!$('#overlay').classList.contains('show')) openAccount(); },300);
     }
   }catch(e){ console.warn('[cuckoo] OAuth 回调处理异常', e && e.message); }
-})();
+}
+document.addEventListener('DOMContentLoaded', ()=>{ initCloud(); handleOAuthCallback(); });
 
 /* =================================================================== Data */
 function openData(){
@@ -1991,7 +2001,12 @@ function closeLightbox(){ $('#lightbox').classList.remove('show'); }
 function dlLightbox(){ const src=$('#lbImg').src; const ext=(src.match(/^data:image\/(\w+)/)||[])[1]||'png'; const a=document.createElement('a'); a.href=src; a.download='cuckoo-image.'+(ext==='jpeg'?'jpg':ext); a.click(); }
 $('#lightbox').addEventListener('click', e=>{ if(e.target===$('#lightbox')||e.target.classList.contains('lb-close')) closeLightbox(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('#overlay').classList.contains('show')) closeModal(); if($('#lightbox').classList.contains('show')) closeLightbox(); } });
-function applyTheme(){ const dark=ls.get('theme','light')==='dark'; document.body.classList.toggle('dark', dark); }
+function applyTheme(){
+  const dark=ls.get('theme','light')==='dark';
+  document.body.classList.toggle('dark', dark);
+  // body 已就绪并切换主题类后，清除首帧防闪烁用的 html 内联底色
+  document.documentElement.style.backgroundColor='';
+}
 function toggleTheme(){ ls.set('theme', ls.get('theme','light')==='dark'?'light':'dark'); applyTheme(); }
 function fetchWithTimeout(url, opts={}, ms=15000){
   const ctrl = new AbortController(); const id = setTimeout(()=>ctrl.abort(), ms);
@@ -2013,7 +2028,9 @@ function adaptScroll(){
   document.body.dataset.scroll = 'page';
   document.querySelectorAll('.col-left,.col-center,.col-right,.card').forEach(el=>{ el.style.overflow=''; });
 }
-window.addEventListener('resize', adaptScroll);
+// resize 防抖：避免拖拽窗口/大屏缩放时高频全量查询造成卡顿
+let _rszT=null;
+window.addEventListener('resize', ()=>{ clearTimeout(_rszT); _rszT=setTimeout(adaptScroll,150); });
 
 /* ---------- Events & init ---------- */
 // 静态 HTML 中的图标统一由 JS 常量注入（data-icon 占位），避免同一 SVG 多处内联
