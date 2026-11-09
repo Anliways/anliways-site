@@ -22,11 +22,10 @@
     <meta name="twitter:image" content="https://www.anliways.com/assets/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="alternate" type="application/rss+xml" title="anliways 的博客 RSS" href="https://www.anliways.com/rss.xml">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <!-- Markdown 实时转换器 -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- XSS 消毒：marked 输出必须经过 DOMPurify 再写入页面 -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <!-- 图标字体 / Markdown 渲染 / XSS 消毒：全部自托管（同源，锁版本，无外部 CDN 依赖） -->
+    <link rel="stylesheet" href="assets/vendor/remixicon.css">
+    <script src="assets/vendor/marked.min.js" defer></script>
+    <script src="assets/vendor/purify.min.js" defer></script>
     <link rel="stylesheet" href="style.css">
     <script src="main.js" defer></script>
 </head>
