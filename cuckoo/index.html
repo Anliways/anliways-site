@@ -145,7 +145,13 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .ds-col i.on{background:linear-gradient(180deg,var(--primary),var(--primary-d))}
   .ds-col em{font-style:normal;font-size:9px;color:var(--muted);line-height:1}
   .ds-total{font-size:11px;color:var(--muted);white-space:nowrap;align-self:center;margin-left:4px}
+  .ds-share{margin-left:6px;align-self:center}
   body.dark .ds-streak{color:var(--text)}
+  /* ---------- 分享卡片 / 邀请 ---------- */
+  .share-preview{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#f8fafc;text-align:center}
+  .share-preview img{max-width:100%;max-height:52vh;display:block;margin:0 auto}
+  .share-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .share-btns .btn{flex:1;min-width:100px}
   /* ---------- 场景模板卡片 ---------- */
   .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
   .tpl-card{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--soft);display:flex;flex-direction:column;gap:4px;transition:border-color .15s,box-shadow .15s}
@@ -618,6 +624,7 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" 
 const ICON_CHEV_L = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>';
 const ICON_CHEV_R = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
 const ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+const ICON_SHARE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>';
 /* ---------- 邮箱采集：服务商预置（IMAP 服务器/端口供代理参考；浏览器无法直连 IMAP） ---------- */
 const MAIL_PROVIDERS = {
   qq:      {name:'QQ 邮箱',     host:'imap.qq.com',           port:993, hint:'QQ 邮箱网页版 → 设置 → 账户 → 开启 IMAP/SMTP 服务并生成授权码'},
@@ -935,6 +942,108 @@ function applyTemplate(tpl){
     }, {title:'应用场景模板', okText:'应用'});
 }
 
+/* =================================================================== 分享卡片 & 邀请 */
+// 分享卡片：Canvas 纯本地绘制（720x960，朋友圈竖版比例），无任何外部依赖
+function truncStr(s,n){ return s.length>n? s.slice(0,n-1)+'…' : s; }
+function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawShareCard(mode){
+  const W=720, H=960;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  // 背景：teal 渐变 + 两处装饰光斑
+  const g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#0f766e'); g.addColorStop(1,'#0b3d3a');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=.07; ctx.fillStyle='#ffffff';
+  ctx.beginPath(); ctx.arc(640,140,190,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(60,900,150,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1;
+  const F='-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+  const st=weeklyStats();
+  const range=st.days[0].slice(5).replace('-','/')+' - '+st.days[6].slice(5).replace('-','/');
+  ctx.fillStyle='rgba(255,255,255,.75)'; ctx.font='500 26px '+F;
+  ctx.fillText('布谷鸟 Cuckoo 工作台',60,100);
+  ctx.textAlign='right'; ctx.fillText(range,W-60,100); ctx.textAlign='left';
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(60,130,W-120,2);
+  if(mode==='week'){
+    ctx.fillStyle='#ffffff'; ctx.font='700 44px '+F;
+    ctx.fillText('我的效率周报',60,225);
+    ctx.font='700 116px '+F;
+    ctx.fillText(String(st.weekTotal),60,375);
+    ctx.font='500 32px '+F; ctx.fillStyle='rgba(255,255,255,.85)';
+    ctx.fillText('本周完成的任务 · 继续保持',60,435);
+    // 本周完成清单（去重取前 6 条）
+    const list=ls.get('daily_tasks',[]).filter(t=>t.done&&t.date>=st.days[0]&&t.date<=st.days[6]);
+    const titles=[...new Set(list.map(t=>t.title))].slice(0,6);
+    ctx.font='500 30px '+F; ctx.fillStyle='rgba(255,255,255,.92)';
+    if(titles.length) titles.forEach((t,i)=>ctx.fillText('✓  '+truncStr(t,15),60,530+i*54));
+    else { ctx.fillStyle='rgba(255,255,255,.6)'; ctx.fillText('还没有完成记录，从一件小事开始吧',60,530); }
+    // 连击徽标
+    if(st.streak>0){
+      ctx.fillStyle='rgba(255,255,255,.16)';
+      roundRectPath(ctx,60,870-70,300,64,32); ctx.fill();
+      ctx.fillStyle='#ffffff'; ctx.font='600 30px '+F;
+      ctx.fillText('🔥 连续 '+st.streak+' 天',86,912-70);
+    }
+  }else{
+    ctx.fillStyle='#ffffff'; ctx.font='700 44px '+F;
+    ctx.fillText('打卡成就',60,225);
+    ctx.font='700 116px '+F;
+    ctx.fillText('🔥 '+st.streak,60,375);
+    ctx.font='500 32px '+F; ctx.fillStyle='rgba(255,255,255,.85)';
+    ctx.fillText('连续打卡天数 · 每天进步一点点',60,435);
+    // 最近 7 天柱状图
+    const max=Math.max(1,...st.counts), bw=52, gap=28, x0=60, baseY=760;
+    st.counts.forEach((n,i)=>{
+      const h=n? Math.max(14, Math.round(n/max*170)) : 8;
+      const x=x0+i*(bw+gap);
+      ctx.fillStyle=n? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.22)';
+      roundRectPath(ctx,x,baseY-h,bw,h,10); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='500 24px '+F;
+      ctx.textAlign='center';
+      ctx.fillText('日一二三四五六'[new Date(st.days[i].replace(/-/g,'/')).getDay()],x+bw/2,baseY+42);
+      if(n) ctx.fillText(String(n),x+bw/2,baseY-h-14);
+      ctx.textAlign='left';
+    });
+  }
+  // 底部落款（裂变入口）
+  ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='500 26px '+F;
+  ctx.fillText('免费使用 → anliways.com/cuckoo',60,906);
+  return c.toDataURL('image/png');
+}
+function openShareCard(){
+  let mode='week';
+  openModal('<h3>分享卡片<span class="x">×</span></h3>'
+    +'<div class="share-preview"><img id="shareImg" alt="分享卡片预览（Canvas 本地生成）"></div>'
+    +'<div class="share-btns">'
+    +'<button class="btn" id="shareToggle">换成打卡成就</button>'
+    +'<button class="btn" id="shareBig">查看大图</button>'
+    +'<button class="btn btn-primary" id="shareDl">下载图片</button></div>'
+    +'<div class="hint">卡片完全在本机生成，不含任何隐私数据（只含完成数量与标题）。手机上可长按图片保存，发朋友圈 / 群聊都合适。</div>');
+  const img=$('#shareImg');
+  const paint=()=>{ img.src=drawShareCard(mode); $('#shareToggle').textContent= mode==='week'? '换成打卡成就':'换成效率周报'; };
+  paint();
+  $('#shareToggle').onclick=()=>{ mode=mode==='week'?'streak':'week'; paint(); };
+  $('#shareBig').onclick=()=>openLightbox(img.src);
+  $('#shareDl').onclick=()=>{ const a=document.createElement('a'); a.href=img.src; a.download='cuckoo-'+mode+'-card.png'; a.click(); toast('已开始下载'); };
+}
+/* ---------- 邀请裂变：推荐文案 + 复制 / 系统分享 ---------- */
+const INVITE_URL='https://www.anliways.com/cuckoo/';
+function openInvite(){
+  const text='发现一个免费的效率工作台「布谷鸟 Cuckoo」：提醒、任务、看板、日历、邮件、AI 全在一个页面，还能生成打卡分享卡 👇\n'+INVITE_URL;
+  openModal('<h3>推荐给朋友<span class="x">×</span></h3>'
+    +'<div class="field"><label>推荐文案（可先编辑再复制）</label><textarea id="invText" rows="4">'+esc(text)+'</textarea></div>'
+    +'<div class="data-row">'
+    +'<button class="btn btn-primary" style="flex:1" id="invCopy">复制文案</button>'
+    +'<button class="btn" style="flex:1" id="invCopyUrl">复制链接</button></div>'
+    +(navigator.share? '<button class="btn" style="width:100%;margin-top:8px" id="invShare">系统分享（微信 / 短信…）</button>':'')
+    +'<div class="hint">感谢推荐！好友打开即可直接使用，无需注册。</div>');
+  $('#invCopy').onclick=()=>copyText($('#invText').value.trim());
+  $('#invCopyUrl').onclick=()=>copyText(INVITE_URL);
+  const sb=$('#invShare');
+  if(sb) sb.onclick=()=>navigator.share({title:'布谷鸟 Cuckoo 工作台', text:$('#invText').value.trim(), url:INVITE_URL}).catch(()=>{});
+}
+
 /* =================================================================== CENTER TOP: Daily tasks */
 let dailySel = 'today';
 const DAILY_TABS = [
@@ -948,7 +1057,8 @@ function dailyDateFor(id){ const t=DAILY_TABS.find(x=>x.id===id); return t&&t.of
 const PRIO = {high:{name:'高', color:'#ef4444'}, mid:{name:'中', color:'#f59e0b'}, low:{name:'低', color:'#3b82f6'}};
 /* ---------- 连击打卡 + 本周完成统计 ---------- */
 // 统计口径：按任务日期统计每天完成数；连击=从今天（或昨天）往前连续有完成的天数
-function renderDailyStats(){
+// weeklyStats 同时供 renderDailyStats 与分享卡片使用
+function weeklyStats(){
   const list=ls.get('daily_tasks',[]);
   const days=[]; for(let i=6;i>=0;i--) days.push(shiftDay(-i));
   const counts=days.map(d=>list.filter(t=>t.done&&t.date===d).length);
@@ -956,16 +1066,23 @@ function renderDailyStats(){
   let streak=0, i=6;
   if(counts[6]===0) i=5; // 今天还没完成不打断连击，从昨天起算
   for(;i>=0;i--){ if(counts[i]>0) streak++; else break; }
-  const max=Math.max(1,...counts);
-  const bars=days.map((d,j)=>{
-    const h=counts[j]? Math.max(5, Math.round(counts[j]/max*16)) : 3;
+  return {days, counts, weekTotal, streak};
+}
+function renderDailyStats(){
+  const st=weeklyStats();
+  const max=Math.max(1,...st.counts);
+  const bars=st.days.map((d,j)=>{
+    const h=st.counts[j]? Math.max(5, Math.round(st.counts[j]/max*16)) : 3;
     const wd='日一二三四五六'[new Date(d.replace(/-/g,'/')).getDay()];
-    return '<span class="ds-col" title="'+relDay(d)+' 完成 '+counts[j]+' 件"><i class="'+(counts[j]?'on':'')+'" style="height:'+h+'px"></i><em>'+wd+'</em></span>';
+    return '<span class="ds-col" title="'+relDay(d)+' 完成 '+st.counts[j]+' 件"><i class="'+(st.counts[j]?'on':'')+'" style="height:'+h+'px"></i><em>'+wd+'</em></span>';
   }).join('');
   $('#dailyStats').innerHTML=
-    '<span class="ds-streak">'+(streak>0? '🔥 连续 '+streak+' 天' : '🌱 完成第一件事，点亮打卡')+'</span>'
+    '<span class="ds-streak">'+(st.streak>0? '🔥 连续 '+st.streak+' 天' : '🌱 完成第一件事，点亮打卡')+'</span>'
     +'<span class="ds-bars">'+bars+'</span>'
-    +'<span class="ds-total">本周 '+weekTotal+' 件</span>';
+    +'<span class="ds-total">本周 '+st.weekTotal+' 件</span>'
+    +'<button class="ic-btn ds-share" data-share title="生成分享卡片">'+ICON_SHARE+'</button>';
+  const sb=$('#dailyStats').querySelector('[data-share]');
+  if(sb) sb.onclick=openShareCard;
 }
 function renderDaily(){
   $('#dailyTabs').innerHTML = DAILY_TABS.map(t=>`<button class="daily-tab ${t.id===dailySel?'active':''}" data-id="${t.id}">${t.label}</button>`).join('');
@@ -1629,7 +1746,9 @@ function openData(){
     <div class="hint">导出会把全部本地数据打包成一个 JSON 文件；导入会覆盖当前同名数据。建议定期备份。</div>
     <div class="hint" id="exportCredWarn" style="display:none;color:var(--warn)">注意：已绑定的邮箱账户授权凭证会包含在导出文件中，请妥善保管。</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-    <button class="btn" style="width:100%;color:var(--warn)" onclick="resetExample()">恢复预置数据</button>
+    <button class="btn" style="width:100%" onclick="openShareCard()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>生成分享卡片（周报 / 打卡成就）</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="openInvite()">推荐给朋友</button>
+    <button class="btn" style="width:100%;color:var(--warn);margin-top:8px" onclick="resetExample()">恢复预置数据</button>
     <button class="btn" style="width:100%;color:var(--danger);margin-top:8px" onclick="clearAll()">清空全部数据</button>`);
   if($('#exportCredWarn')) $('#exportCredWarn').style.display = ls.get('mail_accounts',[]).length? 'block':'none';
 }
