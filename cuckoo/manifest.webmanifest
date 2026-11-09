@@ -5,9 +5,14 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#eef1f4",
-  "theme_color": "#0d9488",
+  "background_color": "#f2f3f5",
+  "theme_color": "#3370ff",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }
