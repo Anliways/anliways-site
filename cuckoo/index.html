@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=1280">
 <!-- 页面自带深/浅色切换，声明仅浅色可禁用浏览器"强制暗色"，避免其反色破坏对比度 -->
 <meta name="color-scheme" content="only light">
 <meta name="description" content="布谷鸟 Cuckoo 工作台：提醒、每日任务、看板、日历、邮件与 AI 文本/图像生成集成于一体的个人效率工作台（数据仅存本机浏览器）。">
@@ -28,7 +28,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
     --shadow-pop:0 8px 24px rgba(16,24,40,.12);
     --topbar-h:60px;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -117,8 +117,6 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .ai-chip:active{transform:translateY(0)}
   body.dark .ai-chip{border-color:var(--border)}
   body.dark .ai-chip:hover{border-color:var(--primary)}
-  /* ---------- 移动端底部快捷导航 ---------- */
-  .bottom-nav{display:none}
 
   /* ---------- Image designer ---------- */
   .img-prompt{display:flex;gap:8px}
@@ -294,51 +292,6 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .toast button{border:none;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:3px 12px;font-size:12px;min-height:26px;flex-shrink:0}
   .toast button:hover{background:rgba(255,255,255,.3)}
   @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
-
-  /* ---------- Mobile (上下堆叠) ---------- */
-  @media (max-width:900px){
-    body{display:block;height:auto;overflow:auto}
-    .main{flex-direction:column;height:auto;overflow:visible}
-    .col-left,.col-center,.col-right{width:100%;overflow:visible}
-    .topbar{flex-wrap:wrap;height:auto;padding:10px 12px;gap:8px}
-    .reminders{order:3;width:100%;flex:1 1 100%}
-    .top-actions{margin-left:auto}
-    #genCard,#dailyCard,#calCard,#kanbanCard,#emailCard{flex:none}
-    .img-grid{grid-template-columns:repeat(4,1fr)}
-    .backup-hint{flex-wrap:wrap}
-
-    .overlay{align-items:flex-end}
-    .drawer{border-radius:18px 18px 0 0;margin:0;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
-    .main{padding:12px;gap:12px}
-    .top-actions{flex-wrap:wrap}
-    /* 触控目标：放大过小的图标按钮（22-26px 对手指过小） */
-    .rem-done{width:28px;height:28px}
-    .rem-done svg{width:15px;height:15px}
-    .ic-btn{width:32px;height:32px}
-    .ic-btn svg{width:15px;height:15px}
-    .dc-bot .ic-btn{width:28px;height:28px;margin-left:0}
-    .dc-del{font-size:20px;padding:2px 8px}
-    .daily-check{width:24px;height:24px}
-    .daily-check svg{width:14px;height:14px}
-    .daily-arrow{width:36px;height:36px}
-    .kcard .kact button{width:30px;height:30px}
-    .btn-sm{min-height:38px}
-    .daily-tab{padding:7px 14px}
-    .kb-filter{padding:7px 12px}
-    .ksec .ksh .kadd2{padding:6px 12px}
-    .search-box input{font-size:16px}
-    /* 搜索框 + 筛选按钮放不下时换行，避免撑出横向滚动 */
-    .kanban-toolbar{flex-wrap:wrap}
-    /* 底部快捷导航：固定底栏 + 安全区适配；主区预留高度避免遮挡末尾内容 */
-    .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:#fff;border-top:1px solid var(--border);padding:5px 8px calc(5px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(16,24,40,.08)}
-    .bottom-nav button{flex:1;border:none;background:transparent;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;min-height:44px;border-radius:10px}
-    .bottom-nav button svg{width:20px;height:20px}
-    .bottom-nav button:active{color:var(--primary);background:var(--primary-soft)}
-    .main{padding-bottom:88px}
-    .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
-  }
-  body.dark .bottom-nav{background:var(--card);border-top-color:var(--border)}
-  body.dark .bottom-nav button{color:var(--muted)}
 
   /* ---------- 窄桌面/平板 (901-1200)：三栏过挤，改为上中下两行 ---------- */
   @media (min-width:901px) and (max-width:1200px){
@@ -595,12 +548,6 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   </section>
 </main>
 
-<nav class="bottom-nav" aria-label="快捷操作">
-  <button data-bn="task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>任务</button>
-  <button data-bn="rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>提醒</button>
-  <button data-bn="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>AI</button>
-  <button data-bn="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>顶部</button>
-</nav>
 <div class="overlay" id="overlay"><div class="drawer" id="drawer"></div></div>
 <div class="lightbox" id="lightbox">
   <button class="lb-close" onclick="closeLightbox()" aria-label="关闭预览" title="关闭预览">×</button>
@@ -2075,14 +2022,6 @@ document.querySelectorAll('[data-icon]').forEach(el=>{ el.insertAdjacentHTML('af
 
 applyTheme();
 initAIChips();
-// 移动端底部快捷导航（桌面隐藏，仅 ≤900px 显示）
-document.querySelectorAll('.bottom-nav [data-bn]').forEach(b=>b.onclick=()=>{
-  const act=b.dataset.bn;
-  if(act==='task') addDaily();
-  else if(act==='rem') openReminderManager();
-  else if(act==='ai'){ $('#genCard').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>$('#textInput').focus({preventScroll:true}),350); }
-  else if(act==='top') window.scrollTo({top:0,behavior:'smooth'});
-});
 $('#btnTheme').onclick=toggleTheme;
 $('#btnTemplates').onclick=openTemplates;
 $('#btnAccount').onclick=openAccount;
