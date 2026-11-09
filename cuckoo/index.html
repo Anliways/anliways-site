@@ -6,6 +6,14 @@
 <!-- 页面自带深/浅色切换，声明仅浅色可禁用浏览器"强制暗色"，避免其反色破坏对比度 -->
 <meta name="color-scheme" content="only light">
 <meta name="description" content="布谷鸟 Cuckoo 工作台：提醒、每日任务、看板、日历、邮件与 AI 文本/图像生成集成于一体的个人效率工作台（数据仅存本机浏览器）。">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d9488">
+<script>
+// PWA：仅在 https / localhost 环境注册 Service Worker（file:// 直开跳过，不影响本地使用）
+if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost','127.0.0.1'].includes(location.hostname))){
+  addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
 <title>Cuckoo 工作台</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE2IDExdjVsMy41IDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <style>
@@ -205,6 +213,9 @@
   /* ---------- 邮箱采集 ---------- */
   .ac-row{display:flex;align-items:center;gap:8px}
   .ac-badge{font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:5px;padding:2px 8px;flex-shrink:0;white-space:nowrap}
+  .prio-dot{width:8px;height:8px;border-radius:999px;flex-shrink:0}
+  .kdue{font-size:11px;color:var(--muted);background:var(--soft);border-radius:5px;padding:1px 6px;flex-shrink:0;white-space:nowrap}
+  .kdue.overdue{color:var(--danger);border:1px solid var(--danger);background:transparent}
   .ac-mail{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
   .ac-count{color:var(--muted);font-weight:400;margin-left:4px}
   .m-via{font-size:10px;color:var(--primary);background:var(--primary-soft);border-radius:4px;padding:1px 6px;margin-left:6px;flex-shrink:0;align-self:center}
@@ -429,6 +440,9 @@
           <div class="writer-row"><button class="btn btn-primary" id="btnTextGen" style="flex:1" data-icon="gen">生成文本</button></div>
           <div class="writer-result" id="textResult">在「设置」中配置文本 API 后即可使用。</div>
           <div class="writer-row" style="margin-top:6px"><button class="btn btn-sm btn-ghost" id="btnTextCopy">复制结果</button></div>
+          <div class="search-box" data-icon="search" style="margin-top:2px">
+            <input id="textHistSearch" type="search" placeholder="搜索生成历史" autocomplete="off">
+          </div>
           <div class="hist" id="textHist"></div>
         </div>
       </div>
@@ -623,40 +637,67 @@ function seedIfEmpty(){
 }
 
 /* =================================================================== TOP BAR */
+const REPEATS = {daily:'每天', weekly:'每周', monthly:'每月'};
+// 计算下一个周期日：monthly 按日钳制到月末（31 号在 2 月变 28/29 号）
+function nextOccur(dateStr, repeat){
+  const p=dateStr.split('-').map(Number);
+  if(repeat==='daily')  return fmtDate(new Date(p[0], p[1]-1, p[2]+1));
+  if(repeat==='weekly') return fmtDate(new Date(p[0], p[1]-1, p[2]+7));
+  if(repeat==='monthly'){
+    const base=new Date(p[0], p[1], 1); // 下个月
+    const last=new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    base.setDate(Math.min(p[2], last));
+    return fmtDate(base);
+  }
+  return dateStr;
+}
+// 重复提醒的有效到期日：把起始日向后推进到 >= today 的最近一期
+function effRemDate(r, today){
+  if(!r.repeat || r.repeat==='none' || !r.date) return r.date;
+  let d=r.date, guard=0;
+  while(d<today && guard++<500) d=nextOccur(d, r.repeat);
+  return d;
+}
 // 提醒到期日比较键：无时间的视为当天末尾（23:59）
-function remSortKey(r){ return (r.date||'9999-99-99')+' '+(r.time||'23:59'); }
+function remSortKey(r, today){ return (effRemDate(r, today)||'9999-99-99')+' '+(r.time||'23:59'); }
 function remOverdue(r, today, hhmm){
   if(r.done) return false;
-  if((r.date||'') < today) return true;
-  return r.date===today && !!r.time && !!hhmm && r.time<=hhmm;
+  const ed = effRemDate(r, today) || '';
+  if(ed < today) return true;
+  return ed===today && !!r.time && !!hhmm && r.time<=hhmm;
 }
 function renderReminders(){
   const all = ls.get('reminders', []);
   const today = todayStr(), hhmm = remHHMM();
-  const open = all.filter(r=>!r.done).sort((a,b)=> remSortKey(a)<remSortKey(b)?-1:1);
+  const open = all.filter(r=>!r.done).sort((a,b)=> remSortKey(a,today)<remSortKey(b,today)?-1:1);
   const bar = $('#remindersBar');
   if(open.length===0){ bar.innerHTML='<span class="rem-empty">暂无待处理提醒 ✓</span>'; return; }
   bar.innerHTML = open.slice(0, LIMITS.topReminders).map(r=>{
     const past = remOverdue(r, today, hhmm);
-    const overdue = r.date < today;
-    const label = overdue ? '逾期 '+fmtMD(r.date)
+    const ed = effRemDate(r, today) || '';
+    const isOverdue = ed < today;
+    const rep = r.repeat && r.repeat!=='none' ? REPEATS[r.repeat] : '';
+    const label = isOverdue ? '逾期 '+fmtMD(ed)
       : past ? '已到点'
-      : relDay(r.date)+(r.time? ' '+r.time : '');
+      : relDay(ed)+(r.time? ' '+r.time : '');
     return `<div class="rem-chip ${past?'overdue':''}">
       <span class="rem-date">${label}</span>
-      <span class="rem-txt">${esc(r.text)}</span>
+      <span class="rem-txt">${esc(r.text)}${rep?' <span class="ac-badge">'+rep+'</span>':''}</span>
       <button class="rem-done" title="完成" data-id="${r.id}">${CHK}</button>
     </div>`;
   }).join('');
-  bar.querySelectorAll('.rem-done').forEach(b=>b.onclick=()=>toggleDone('reminders', b.dataset.id, renderReminders));
+  bar.querySelectorAll('.rem-done').forEach(b=>b.onclick=()=>toggleRem(b.dataset.id));
 }
 
 /* =================================================================== LEFT TOP: Text */
+let textHistQuery='';
 function renderTextHist(){
   const h = ls.get('text_history', []);
-  $('#textHist').innerHTML = h.length? h.slice().reverse().map(it=>
+  const q = textHistQuery.trim().toLowerCase();
+  const shown = q? h.filter(it=> (it.q||'').toLowerCase().includes(q) || (it.a||'').toLowerCase().includes(q)) : h;
+  $('#textHist').innerHTML = shown.length? shown.slice().reverse().map(it=>
     `<div class="hist-item" data-id="${it.id}" style="cursor:pointer"><div class="h-q">${esc(it.q)}</div><div class="h-a">${esc(it.a)}</div></div>`
-  ).join('') : '<div class="kempty">暂无生成记录</div>';
+  ).join('') : (q? '<div class="kempty">没有匹配的记录</div>' : '<div class="kempty">暂无生成记录</div>');
   $('#textHist').querySelectorAll('.hist-item').forEach(el=>el.onclick=()=>{
     const it=h.find(x=>x.id===el.dataset.id); if(!it)return;
     $('#textInput').value=it.q; $('#textInput').focus(); toast('已回填到输入框');
@@ -666,18 +707,57 @@ async function genText(){
   const cfg = ls.get('config',{}).textApi||{};
   const q = $('#textInput').value.trim();
   if(!q){ toast('请输入内容'); return; }
-  const btn=$('#btnTextGen'); btn.disabled=true; btn.innerHTML='<span class="spin"></span> 生成中';
+  const btn=$('#btnTextGen'), out=$('#textResult');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> 生成中';
+  let ans='';
   try{
-    if(!cfg.url || !cfg.key){ $('#textResult').textContent='未配置文本 API：请在「设置」中填写接口地址与密钥。'; toast('请先在「设置」中配置文本 API'); throw new Error('__demo__'); }
-    const res = await apiFetch(cfg, {body:{model:cfg.model||'gpt-4o-mini', messages:[{role:'user',content:q}], temperature:0.7}});
+    if(!cfg.url || !cfg.key){ out.textContent='未配置文本 API：请在「设置」中填写接口地址与密钥。'; toast('请先在「设置」中配置文本 API'); throw new Error('__demo__'); }
+    // 流式优先（OpenAI 兼容 SSE）：增量渲染到结果区；代理不支持时自动回退 JSON
+    const res = await apiFetch(cfg, {body:{model:cfg.model||'gpt-4o-mini', messages:[{role:'user',content:q}], temperature:0.7, stream:true}, timeout:120000});
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const j = await res.json();
-    let ans = j?.choices?.[0]?.message?.content || j?.output?.text || (typeof j?.response==='string'?j.response:null);
-    if(!ans) ans = JSON.stringify(j);
-    $('#textResult').textContent = ans;
+    const ctype = res.headers.get('content-type')||'';
+    if(ctype.includes('text/event-stream') && res.body){
+      out.textContent='';
+      const reader=res.body.getReader(), dec=new TextDecoder();
+      let buf='';
+      for(;;){
+        const {done, value} = await reader.read();
+        if(done) break;
+        buf += dec.decode(value, {stream:true});
+        const lines = buf.split('\n');
+        buf = lines.pop(); // 末尾可能是半行，留到下一轮
+        for(const line of lines){
+          const s=line.trim();
+          if(!s.startsWith('data:')) continue;
+          const data=s.slice(5).trim();
+          if(data==='[DONE]' || !data) continue;
+          try{
+            const j=JSON.parse(data);
+            const delta=j?.choices?.[0]?.delta?.content ?? j?.choices?.[0]?.message?.content ?? '';
+            if(delta){ ans+=delta; out.textContent=ans; }
+          }catch(err){ /* 忽略心跳/注释行 */ }
+        }
+      }
+      if(!ans) throw new Error('流式响应为空（检查接口是否兼容 OpenAI 格式）');
+    }else{
+      const j = await res.json();
+      ans = j?.choices?.[0]?.message?.content || j?.output?.text || (typeof j?.response==='string'?j.response:null);
+      if(!ans) ans = JSON.stringify(j);
+      out.textContent = ans;
+    }
     const h = ls.get('text_history',[]); h.push({id:rid(), q, a:ans, t:todayStr()}); ls.set('text_history',h.slice(-LIMITS.textMax));
     renderTextHist();
-  }catch(e){ if(e.message!=='__demo__'){ $('#textResult').textContent='调用失败：'+apiErrMsg(e)+'（检查设置中的 API 配置）'; } }
+  }catch(e){
+    if(e.message!=='__demo__'){
+      if(ans){ // 流式中途失败：保留已生成部分
+        out.textContent = ans + '\n\n[响应中断] '+apiErrMsg(e);
+        const h = ls.get('text_history',[]); h.push({id:rid(), q, a:ans+'（响应中断）', t:todayStr()}); ls.set('text_history',h.slice(-LIMITS.textMax));
+        renderTextHist(); toast('生成中断，已保留部分结果');
+      }else{
+        out.textContent='调用失败：'+apiErrMsg(e)+'（检查设置中的 API 配置）';
+      }
+    }
+  }
   finally{ btn.disabled=false; btn.innerHTML=ICON_GEN+'生成文本'; }
 }
 
@@ -730,6 +810,7 @@ const DAILY_TABS = [
   {id:'all', label:'全部', off:null}
 ];
 function dailyDateFor(id){ const t=DAILY_TABS.find(x=>x.id===id); return t&&t.off!=null? shiftDay(t.off): null; }
+const PRIO = {high:{name:'高', color:'#ef4444'}, mid:{name:'中', color:'#f59e0b'}, low:{name:'低', color:'#3b82f6'}};
 function renderDaily(){
   $('#dailyTabs').innerHTML = DAILY_TABS.map(t=>`<button class="daily-tab ${t.id===dailySel?'active':''}" data-id="${t.id}">${t.label}</button>`).join('');
   $('#dailyTabs').querySelectorAll('.daily-tab').forEach(b=>b.onclick=()=>{ dailySel=b.dataset.id; renderDaily(); });
@@ -737,18 +818,21 @@ function renderDaily(){
   const dsel = dailyDateFor(dailySel);
   const shown = dsel? list.filter(t=>t.date===dsel) : list;
   if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有任务，点右上角「+ 添加」。</div>'; return; }
-  $('#dailyScroll').innerHTML = shown.map(t=>
-    `<div class="daily-card ${t.done?'done':''}">
+  $('#dailyScroll').innerHTML = shown.map(t=>{
+    const pr = PRIO[t.prio];
+    return `<div class="daily-card ${t.done?'done':''}">
       <div class="dc-top">
         <button class="daily-check ${t.done?'on':''}" data-id="${t.id}" aria-label="切换任务完成">${CHK}</button>
         <span class="dc-title">${esc(t.title)}</span>
+        ${pr? `<span class="prio-dot" style="background:${pr.color}" title="${pr.name}优先级"></span>`:''}
       </div>
           <div class="dc-bot">
             <span class="dc-date">${relDay(t.date)}</span>
             <button class="ic-btn" data-edit="${t.id}" title="编辑">${ICON_EDIT}</button>
             <button class="dc-del" data-id="${t.id}" title="删除">×</button>
           </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   $('#dailyScroll').querySelectorAll('.daily-check').forEach(b=>b.onclick=()=>toggleDone('daily_tasks', b.dataset.id, renderDaily));
   $('#dailyScroll').querySelectorAll('.dc-del').forEach(b=>b.onclick=()=>{
     const id=b.dataset.id, item=ls.get('daily_tasks',[]).find(x=>x.id===id);
@@ -763,12 +847,14 @@ function editDaily(id){
     title:'编辑任务', saveText:'保存',
     fields:[
       {id:'dyTitle', label:'任务内容', value:t.title},
-      {id:'dyDate', label:'日期', type:'date', value:t.date}
+      {id:'dyDate', label:'日期', type:'date', value:t.date},
+      {id:'dyPrio', label:'优先级', type:'select', value:t.prio||'none',
+        options:[{value:'none',name:'无'},{value:'high',name:'高'},{value:'mid',name:'中'},{value:'low',name:'低'}]}
     ],
-    onSave:([title,date])=>{
-      if(!title.trim()) return false;
+    onSave:([title,date,prio])=>{
+      if(!title.trim()){ toast('任务内容不能为空'); return false; }
       const list=ls.get('daily_tasks',[]); const it=list.find(x=>x.id===id);
-      if(it){ it.title=title.trim(); it.date=date||it.date; }
+      if(it){ it.title=title.trim(); it.date=date||it.date; it.prio=prio==='none'?'':prio; }
       ls.set('daily_tasks',list); renderDaily();
     }
   });
@@ -779,12 +865,14 @@ function addDaily(){
     title:'添加每日任务', saveText:'添加',
     fields:[
       {id:'dyTitle', label:'任务内容', placeholder:'例如：完成接口联调'},
-      {id:'dyDate', label:'日期', type:'date', value:def}
+      {id:'dyDate', label:'日期', type:'date', value:def},
+      {id:'dyPrio', label:'优先级', type:'select', value:'none',
+        options:[{value:'none',name:'无'},{value:'high',name:'高'},{value:'mid',name:'中'},{value:'low',name:'低'}]}
     ],
-    onSave:([title,date])=>{
-      if(!title.trim()) return false;
+    onSave:([title,date,prio])=>{
+      if(!title.trim()){ toast('任务内容不能为空'); return false; }
       const list=ls.get('daily_tasks',[]);
-      list.push({id:rid(), title:title.trim(), date:date||todayStr(), done:false});
+      list.push({id:rid(), title:title.trim(), date:date||todayStr(), prio:prio==='none'?'':prio, done:false});
       ls.set('daily_tasks',list); renderDaily();
     }
   });
@@ -839,7 +927,9 @@ function renderKanban(){
         let d = origIdx<KCOLS.length-1? downBtn.replace('{ID}',c.id):'';
         const editBtn=`<button class="ic-btn" data-edit="${c.id}" title="编辑">${ICON_EDIT}</button>`;
         const delBtn=`<button class="ic-btn danger" data-del="${c.id}" title="删除">${ICON_TRASH}</button>`;
-        return `<div class="kcard" draggable="true" data-id="${c.id}"><span class="kt">${esc(c.title)}</span><span class="kact">${u}${d}${editBtn}${delBtn}</span></div>`;
+        const dueOverdue = c.due && c.due<todayStr() && c.col!=='done';
+        const dueChip = c.due? `<span class="kdue ${dueOverdue?'overdue':''}" title="${dueOverdue?'已逾期':'截止'} ${c.due}">${dueOverdue?'逾期 ':''}${fmtMD(c.due)}</span>`:'';
+        return `<div class="kcard" draggable="true" data-id="${c.id}"><span class="kt">${esc(c.title)}</span>${dueChip}<span class="kact">${u}${d}${editBtn}${delBtn}</span></div>`;
       }).join(''):'<div class="kempty">暂无</div>'}</div>
     </div>`;
   }).join('');
@@ -889,13 +979,14 @@ function openKanbanModal(col, editId){
     title:(c?'编辑':'添加')+'看板任务', saveText:c?'保存':'添加',
     fields:[
       {id:'kTitle', label:'任务标题', value:c?c.title:'', placeholder:'例如：联调邮件接口'},
-      {id:'kCol', label:'状态', type:'select', value:c?c.col:(col||'todo'), options:KCOLS.map(k=>({value:k.id, name:k.name}))}
+      {id:'kCol', label:'状态', type:'select', value:c?c.col:(col||'todo'), options:KCOLS.map(k=>({value:k.id, name:k.name}))},
+      {id:'kDue', label:'截止日期（可选）', type:'date', value:c?(c.due||''):''}
     ],
-    onSave:([t,kCol])=>{
-      if(!t.trim()) return false;
+    onSave:([t,kCol,kDue])=>{
+      if(!t.trim()){ toast('任务标题不能为空'); return false; }
       const cards=ls.get('kanban',[]);
-      if(c){ c.title=t.trim(); c.col=kCol; }
-      else cards.push({id:rid(), title:t.trim(), col:kCol});
+      if(c){ c.title=t.trim(); c.col=kCol; c.due=kDue||''; }
+      else cards.push({id:rid(), title:t.trim(), col:kCol, due:kDue||''});
       ls.set('kanban',cards); renderKanban();
     }
   });
@@ -1015,27 +1106,33 @@ function delEvent(date,title){
   });
 }
 function openReminderManager(){
-  const list = ls.get('reminders',[]).slice().sort((a,b)=> remSortKey(a)<remSortKey(b)?-1:1);
-  const overdue = r => remOverdue(r, todayStr(), remHHMM());
-  const item = r => `<div class="hist-item" style="display:flex;align-items:center;gap:8px">
+  const today = todayStr();
+  const list = ls.get('reminders',[]).slice().sort((a,b)=> remSortKey(a,today)<remSortKey(b,today)?-1:1);
+  const overdue = r => remOverdue(r, today, remHHMM());
+  const item = r => {
+    const ed = effRemDate(r, today) || r.date;
+    return `<div class="hist-item" style="display:flex;align-items:center;gap:8px">
       <button class="daily-check ${r.done?'on':''}" style="width:18px;height:18px;flex-shrink:0" data-done="${r.id}" aria-label="切换提醒完成">${CHK}</button>
       <span style="flex:1;min-width:0;${r.done?'text-decoration:line-through;':''}color:${overdue(r)?'var(--danger)':'var(--text)'}">
-        <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.text)}</span>
-        <small style="color:var(--muted)">${fmtMD(r.date)}${r.time?' '+r.time:''}${overdue(r)?' · 已到点':(r.date<todayStr()?' · 逾期':'')}</small>
+        <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.text)}${r.repeat&&r.repeat!=='none'?' <span class="ac-badge">'+(REPEATS[r.repeat]||'')+'</span>':''}</span>
+        <small style="color:var(--muted)">${fmtMD(ed)}${r.time?' '+r.time:''}${overdue(r)?' · 已到点':(ed<today?' · 逾期':'')}</small>
       </span>
       <button class="ic-btn" data-edit="${r.id}" title="编辑">${ICON_EDIT}</button>
       <button class="ic-btn danger" data-del="${r.id}" title="删除">${ICON_TRASH}</button>
     </div>`;
+  };
+  const repeatOptions = Object.keys(REPEATS).map(k=>'<option value="'+k+'">'+REPEATS[k]+'</option>').join('');
   openModal(`<h3>提醒管理<span class="x">×</span></h3>
     <div id="remList">${list.length? list.map(item).join('') : '<div class="kempty">暂无提醒</div>'}</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
     <div class="field"><label>新增提醒内容</label><input id="rText" placeholder="例如：提交月报"></div>
     <div style="display:flex;gap:8px">
-      <div class="field" style="flex:1.2"><label>日期</label><input id="rDate" type="date" value="${todayStr()}"></div>
+      <div class="field" style="flex:1.2"><label>日期</label><input id="rDate" type="date" value="${today}"></div>
       <div class="field" style="flex:1"><label>时间（可选）</label><input id="rTime" type="time"></div>
+      <div class="field" style="flex:1"><label>重复</label><select id="rRepeat"><option value="none">不重复</option>${repeatOptions}</select></div>
     </div>
     <button class="btn btn-primary" style="width:100%" onclick="addReminder()">添加提醒</button>
-    <div class="hint">填了时间则到点时提醒（需页面保持打开）；只填日期则进入当天的汇总通知。顶栏显示最近 3 条未完成提醒，逾期/已到点标红。</div>`);
+    <div class="hint">填了时间则到点时提醒（需页面保持打开）；只填日期则进入当天的汇总通知。重复提醒完成后自动顺延到下一期。顶栏显示最近 3 条未完成提醒，逾期/已到点标红。</div>`);
   $('#remList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>toggleRem(b.dataset.done));
   $('#remList').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editReminder(b.dataset.edit));
   $('#remList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delReminder(b.dataset.del));
@@ -1045,12 +1142,25 @@ function addReminder(){
   const text=$('#rText').value.trim(); if(!text){ toast('请输入提醒内容'); return; }
   const time=$('#rTime').value.trim();
   if(time && !TIME_RE.test(time)){ toast('时间格式不正确'); return; }
+  const repeat=$('#rRepeat')? $('#rRepeat').value : 'none';
+  if(!['none','daily','weekly','monthly'].includes(repeat)){ toast('重复规则无效'); return; }
   const list=ls.get('reminders',[]);
-  list.push({id:rid(), text, date:$('#rDate').value||todayStr(), time:time||'', done:false});
+  list.push({id:rid(), text, date:$('#rDate').value||todayStr(), time:time||'', repeat, done:false});
   ls.set('reminders',list); renderReminders();
   $('#rText').value=''; $('#rDate').value=todayStr(); $('#rTime').value=''; openReminderManager();
 }
-function toggleRem(id){ toggleDone('reminders', id, renderReminders); // 仅当「提醒管理」弹窗已打开时刷新它，避免从顶栏勾选时误弹窗
+// 重复提醒的「完成」= 顺延到下一期（保持未完成状态）；普通提醒按原逻辑切换 done
+function completeReminder(id){
+  const list=ls.get('reminders',[]); const r=list.find(x=>x.id===id);
+  if(r && r.repeat && r.repeat!=='none'){
+    r.date = nextOccur(effRemDate(r, todayStr()), r.repeat);
+    ls.set('reminders',list); renderReminders();
+    toast('已完成，下次提醒 '+fmtMD(r.date)+(r.time? ' '+r.time:''));
+    return;
+  }
+  toggleDone('reminders', id, renderReminders);
+}
+function toggleRem(id){ completeReminder(id); // 仅当「提醒管理」弹窗已打开时刷新它，避免从顶栏勾选时误弹窗
   if($('#overlay').classList.contains('show') && $('#remList')) openReminderManager(); }
 function editReminder(id){
   const r=ls.get('reminders',[]).find(x=>x.id===id); if(!r)return;
@@ -1059,13 +1169,16 @@ function editReminder(id){
     fields:[
       {id:'erText', label:'提醒内容', value:r.text},
       {id:'erDate', label:'日期', type:'date', value:r.date},
-      {id:'erTime', label:'时间（留空为全天）', type:'time', value:r.time||''}
+      {id:'erTime', label:'时间（留空为全天）', type:'time', value:r.time||''},
+      {id:'erRepeat', label:'重复', type:'select', value:r.repeat||'none',
+        options:[{value:'none',name:'不重复'},{value:'daily',name:'每天'},{value:'weekly',name:'每周'},{value:'monthly',name:'每月'}]}
     ],
-    onSave:([text,date,time])=>{
+    onSave:([text,date,time,repeat])=>{
       if(!text.trim()){ toast('提醒内容不能为空'); return false; }
       if(time && !TIME_RE.test(time)){ toast('时间格式不正确'); return false; }
+      if(!['none','daily','weekly','monthly'].includes(repeat)){ toast('重复规则无效'); return false; }
       const list=ls.get('reminders',[]); const it=list.find(x=>x.id===id);
-      if(it){ it.text=text.trim(); it.date=date||it.date; it.time=time||''; }
+      if(it){ it.text=text.trim(); it.date=date||it.date; it.time=time||''; it.repeat=repeat; }
       ls.set('reminders',list); renderReminders(); openReminderManager();
     }
   });
@@ -1111,17 +1224,20 @@ function openSettings(){
 /* ---------- 邮箱采集：账户绑定 / 管理 / 采集 ---------- */
 function openMailAccounts(){
   const list = ls.get('mail_accounts',[]);
+  const maskCred = c => c? '····'+String(c).replace(/\s+/g,'').slice(-4) : '未设置';
   const rows = list.length? list.map(a=>{
     const p = MAIL_PROVIDERS[a.provider]||{name:a.provider};
     return `<div class="hist-item ac-row">
       <span class="ac-badge">${esc(p.name)}</span>
       <span class="ac-mail" title="${esc(a.email)}（${esc(p.host||'')}）">${esc(a.email)}</span>
+      <span class="ac-badge" style="color:var(--muted);background:var(--soft)" title="凭证已脱敏显示">凭证 ${esc(maskCred(a.credential))}</span>
       <button class="ic-btn" data-collect="${a.id}" title="采集该账户邮件">${ICON_SEARCH}</button>
       <button class="ic-btn danger" data-del="${a.id}" title="解绑">${ICON_TRASH}</button>
     </div>`;
   }).join('') : '<div class="kempty">尚未绑定邮箱账户</div>';
   openModal(`<h3>邮箱采集<span class="x">×</span></h3>
-    <div class="hint">浏览器无法直连 IMAP：采集通过「邮件列表 API」代理完成，请求头 X-Mail-Account 携带账户信息（服务商 / 邮箱 / IMAP 主机 / 授权凭证），由代理登录对应邮箱拉取邮件。授权凭证仅保存在本机浏览器。</div>
+    <div class="hint">浏览器无法直连 IMAP：采集通过「邮件列表 API」代理完成，请求头 X-Mail-Account 携带账户信息（服务商 / 邮箱 / IMAP 主机 / 授权凭证），由代理登录对应邮箱拉取邮件。</div>
+    <div class="hint" style="color:var(--warn)">安全提示：授权凭证以明文保存在本机浏览器（localStorage），请勿在共用电脑上绑定账户；导出备份 JSON 时会包含凭证，请妥善保管备份文件。</div>
     <div style="margin:10px 0;display:flex;flex-direction:column;gap:6px">${rows}</div>
     <div class="data-row"><button class="btn btn-primary" style="flex:1" data-add>+ 添加邮箱账户</button><button class="btn" style="flex:1" data-collect-all>采集全部账户</button></div>`);
   $('#drawer [data-add]').onclick=()=>addMailAccount();
@@ -1208,14 +1324,14 @@ function enableNotify(){
 function pushReminderNotification(force){
   if(!('Notification' in window) || Notification.permission!=='granted') return;
   const today=todayStr();
-  const open=ls.get('reminders',[]).filter(r=>!r.done && r.date<=today);
+  const open=ls.get('reminders',[]).filter(r=>!r.done && (effRemDate(r,today)||'')<=today);
   if(!open.length) return;
   if(!force && ls.get('notified_on','')===today) return; // 每天只推一次
   ls.set('notified_on', today);
   try{
     new Notification('Cuckoo 工作台 · 今日 '+open.length+' 条提醒', {
       tag:'cuckoo-reminders-'+today,
-      body: open.slice(0,3).map(r=>(r.date<today?'[逾期] ':'')+(r.time?'('+r.time+') ':'')+r.text).join('\n')
+      body: open.slice(0,3).map(r=>((effRemDate(r,today)||'')<today?'[逾期] ':'')+(r.time?'('+r.time+') ':'')+r.text).join('\n')
     });
   }catch(e){}
 }
@@ -1233,11 +1349,12 @@ function startDueTicker(){
   const tick = ()=>{
     const today=todayStr(), hhmm=remHHMM();
     const due = ls.get('reminders',[]).filter(r=>{
-      const key = r.id+'@'+r.date+' '+r.time;
-      return !r.done && r.time && TIME_RE.test(r.time) && r.date===today && r.time<=hhmm && !dueNotified.has(key);
+      const ed = effRemDate(r, today);
+      const key = r.id+'@'+today+' '+r.time;
+      return !r.done && r.time && TIME_RE.test(r.time) && ed===today && r.time<=hhmm && !dueNotified.has(key);
     });
     if(!due.length) return;
-    due.forEach(r=>dueNotified.add(r.id+'@'+r.date+' '+r.time));
+    due.forEach(r=>dueNotified.add(r.id+'@'+today+' '+r.time));
     ls.set('notified_due', [...dueNotified].slice(-200));
     fireDueNotification(due);
     renderReminders(); // 到点后顶栏状态变为「已到点」标红
@@ -1255,9 +1372,11 @@ function openData(){
     </div>
     <input type="file" id="importFile" accept="application/json" style="display:none" onchange="doImport(event)">
     <div class="hint">导出会把全部本地数据打包成一个 JSON 文件；导入会覆盖当前同名数据。建议定期备份。</div>
+    <div class="hint" id="exportCredWarn" style="display:none;color:var(--warn)">注意：已绑定的邮箱账户授权凭证会包含在导出文件中，请妥善保管。</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
     <button class="btn" style="width:100%;color:var(--warn)" onclick="resetExample()">恢复预置数据</button>
     <button class="btn" style="width:100%;color:var(--danger);margin-top:8px" onclick="clearAll()">清空全部数据</button>`);
+  if($('#exportCredWarn')) $('#exportCredWarn').style.display = ls.get('mail_accounts',[]).length? 'block':'none';
 }
 function exportJSON(){
   const data={};
@@ -1427,6 +1546,7 @@ $('#btnData').onclick=openData;
 $('#btnSettings').onclick=openSettings;
 $('#btnTextGen').onclick=genText;
 $('#btnTextCopy').onclick=()=>copyText($('#textResult').textContent.trim());
+$('#textHistSearch').addEventListener('input', e=>{ textHistQuery=e.target.value; renderTextHist(); });
 $('#btnImgGen').onclick=genImage;
 // 文本草稿：输入自动保存，启动时恢复；Ctrl/Cmd+Enter 快捷生成
 $('#textInput').value = ls.get('text_draft','');
