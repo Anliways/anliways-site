@@ -544,6 +544,7 @@ const fmtDate = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+
 const todayStr = () => fmtDate(new Date());
 const shiftDay = (n) => { const d=new Date(); d.setDate(d.getDate()+n); return fmtDate(d); };
 const fmtMD = s => { const p=s.split('-'); return (p[1]?p[1]:'')+'/'+((p[2]||'').replace(/^0/,'')||''); };
+const remHHMM = () => { const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
 const relDay = s => { if(!s) return ''; if(s===todayStr()) return '今天'; if(s===shiftDay(1)) return '明天'; if(s===shiftDay(2)) return '后天'; if(s===shiftDay(-1)) return '昨天'; return fmtMD(s); };
 const rid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2,10);
 const LIMITS = { topReminders:3, imgMax:9, textMax:50, backupHint:30, importMaxBytes:10*1024*1024 };
@@ -622,16 +623,27 @@ function seedIfEmpty(){
 }
 
 /* =================================================================== TOP BAR */
+// 提醒到期日比较键：无时间的视为当天末尾（23:59）
+function remSortKey(r){ return (r.date||'9999-99-99')+' '+(r.time||'23:59'); }
+function remOverdue(r, today, hhmm){
+  if(r.done) return false;
+  if((r.date||'') < today) return true;
+  return r.date===today && !!r.time && !!hhmm && r.time<=hhmm;
+}
 function renderReminders(){
   const all = ls.get('reminders', []);
-  const today = todayStr();
-  const open = all.filter(r=>!r.done).sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
+  const today = todayStr(), hhmm = remHHMM();
+  const open = all.filter(r=>!r.done).sort((a,b)=> remSortKey(a)<remSortKey(b)?-1:1);
   const bar = $('#remindersBar');
   if(open.length===0){ bar.innerHTML='<span class="rem-empty">暂无待处理提醒 ✓</span>'; return; }
   bar.innerHTML = open.slice(0, LIMITS.topReminders).map(r=>{
+    const past = remOverdue(r, today, hhmm);
     const overdue = r.date < today;
-    return `<div class="rem-chip ${overdue?'overdue':''}">
-      <span class="rem-date">${overdue?'逾期 '+fmtMD(r.date):relDay(r.date)}</span>
+    const label = overdue ? '逾期 '+fmtMD(r.date)
+      : past ? '已到点'
+      : relDay(r.date)+(r.time? ' '+r.time : '');
+    return `<div class="rem-chip ${past?'overdue':''}">
+      <span class="rem-date">${label}</span>
       <span class="rem-txt">${esc(r.text)}</span>
       <button class="rem-done" title="完成" data-id="${r.id}">${CHK}</button>
     </div>`;
@@ -1003,13 +1015,13 @@ function delEvent(date,title){
   });
 }
 function openReminderManager(){
-  const list = ls.get('reminders',[]).slice().sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
-  const overdue = r => r.date < todayStr();
+  const list = ls.get('reminders',[]).slice().sort((a,b)=> remSortKey(a)<remSortKey(b)?-1:1);
+  const overdue = r => remOverdue(r, todayStr(), remHHMM());
   const item = r => `<div class="hist-item" style="display:flex;align-items:center;gap:8px">
       <button class="daily-check ${r.done?'on':''}" style="width:18px;height:18px;flex-shrink:0" data-done="${r.id}" aria-label="切换提醒完成">${CHK}</button>
       <span style="flex:1;min-width:0;${r.done?'text-decoration:line-through;':''}color:${overdue(r)?'var(--danger)':'var(--text)'}">
         <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.text)}</span>
-        <small style="color:var(--muted)">${fmtMD(r.date)}${overdue(r)?' · 逾期':''}</small>
+        <small style="color:var(--muted)">${fmtMD(r.date)}${r.time?' '+r.time:''}${overdue(r)?' · 已到点':(r.date<todayStr()?' · 逾期':'')}</small>
       </span>
       <button class="ic-btn" data-edit="${r.id}" title="编辑">${ICON_EDIT}</button>
       <button class="ic-btn danger" data-del="${r.id}" title="删除">${ICON_TRASH}</button>
@@ -1018,14 +1030,26 @@ function openReminderManager(){
     <div id="remList">${list.length? list.map(item).join('') : '<div class="kempty">暂无提醒</div>'}</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
     <div class="field"><label>新增提醒内容</label><input id="rText" placeholder="例如：提交月报"></div>
-    <div class="field"><label>日期</label><input id="rDate" type="date" value="${todayStr()}"></div>
+    <div style="display:flex;gap:8px">
+      <div class="field" style="flex:1.2"><label>日期</label><input id="rDate" type="date" value="${todayStr()}"></div>
+      <div class="field" style="flex:1"><label>时间（可选）</label><input id="rTime" type="time"></div>
+    </div>
     <button class="btn btn-primary" style="width:100%" onclick="addReminder()">添加提醒</button>
-    <div class="hint">顶栏会显示最近 3 条未完成提醒，逾期项标红。</div>`);
+    <div class="hint">填了时间则到点时提醒（需页面保持打开）；只填日期则进入当天的汇总通知。顶栏显示最近 3 条未完成提醒，逾期/已到点标红。</div>`);
   $('#remList').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>toggleRem(b.dataset.done));
   $('#remList').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editReminder(b.dataset.edit));
   $('#remList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delReminder(b.dataset.del));
 }
-function addReminder(){ const text=$('#rText').value.trim(); if(!text)return; const list=ls.get('reminders',[]); list.push({id:rid(), text, date:$('#rDate').value||todayStr(), done:false}); ls.set('reminders',list); renderReminders(); $('#rText').value=''; $('#rDate').value=todayStr(); openReminderManager(); }
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function addReminder(){
+  const text=$('#rText').value.trim(); if(!text){ toast('请输入提醒内容'); return; }
+  const time=$('#rTime').value.trim();
+  if(time && !TIME_RE.test(time)){ toast('时间格式不正确'); return; }
+  const list=ls.get('reminders',[]);
+  list.push({id:rid(), text, date:$('#rDate').value||todayStr(), time:time||'', done:false});
+  ls.set('reminders',list); renderReminders();
+  $('#rText').value=''; $('#rDate').value=todayStr(); $('#rTime').value=''; openReminderManager();
+}
 function toggleRem(id){ toggleDone('reminders', id, renderReminders); // 仅当「提醒管理」弹窗已打开时刷新它，避免从顶栏勾选时误弹窗
   if($('#overlay').classList.contains('show') && $('#remList')) openReminderManager(); }
 function editReminder(id){
@@ -1034,12 +1058,14 @@ function editReminder(id){
     title:'编辑提醒', saveText:'保存',
     fields:[
       {id:'erText', label:'提醒内容', value:r.text},
-      {id:'erDate', label:'日期', type:'date', value:r.date}
+      {id:'erDate', label:'日期', type:'date', value:r.date},
+      {id:'erTime', label:'时间（留空为全天）', type:'time', value:r.time||''}
     ],
-    onSave:([text,date])=>{
-      if(!text.trim()) return false;
+    onSave:([text,date,time])=>{
+      if(!text.trim()){ toast('提醒内容不能为空'); return false; }
+      if(time && !TIME_RE.test(time)){ toast('时间格式不正确'); return false; }
       const list=ls.get('reminders',[]); const it=list.find(x=>x.id===id);
-      if(it){ it.text=text.trim(); it.date=date||it.date; }
+      if(it){ it.text=text.trim(); it.date=date||it.date; it.time=time||''; }
       ls.set('reminders',list); renderReminders(); openReminderManager();
     }
   });
@@ -1169,7 +1195,9 @@ function saveConfig(){
   ls.set('config', cfg); closeModal(); toast('配置已保存'); renderMail(true);
 }
 
-/* ---------- 桌面通知（今日/逾期提醒，每日一次） ---------- */
+/* ---------- 桌面通知 ---------- */
+// 1) 每日汇总：打开页面时推送一次（今日 + 逾期）
+// 2) 到点提醒：每 30s 检查今日已设置时间的未完成提醒，到点即推（当天去重，含刷新后）
 function enableNotify(){
   if(!('Notification' in window)){ toast('当前浏览器不支持桌面通知'); return; }
   Notification.requestPermission().then(p=>{
@@ -1187,9 +1215,35 @@ function pushReminderNotification(force){
   try{
     new Notification('Cuckoo 工作台 · 今日 '+open.length+' 条提醒', {
       tag:'cuckoo-reminders-'+today,
-      body: open.slice(0,3).map(r=>(r.date<today?'[逾期] ':'')+r.text).join('\n')
+      body: open.slice(0,3).map(r=>(r.date<today?'[逾期] ':'')+(r.time?'('+r.time+') ':'')+r.text).join('\n')
     });
   }catch(e){}
+}
+const dueNotified = new Set(); // 本会话已推送的到点提醒键（id@日期 时间）
+function fireDueNotification(due){
+  const body = due.map(r=>(r.time? r.time+' ' : '')+r.text).join('\n');
+  if('Notification' in window && Notification.permission==='granted'){
+    try{ new Notification('Cuckoo · 提醒时间到', {tag:'cuckoo-due-'+Date.now(), body}); }catch(e){}
+  }
+  toast('【提醒时间到】'+due[0].text+(due.length>1?'（等 '+due.length+' 条）':''), 6000);
+}
+function startDueTicker(){
+  // 恢复当天已推送记录，避免刷新后重复提醒
+  ls.get('notified_due', []).forEach(k=>{ if(k.startsWith(todayStr()+' ')) dueNotified.add(k); });
+  const tick = ()=>{
+    const today=todayStr(), hhmm=remHHMM();
+    const due = ls.get('reminders',[]).filter(r=>{
+      const key = r.id+'@'+r.date+' '+r.time;
+      return !r.done && r.time && TIME_RE.test(r.time) && r.date===today && r.time<=hhmm && !dueNotified.has(key);
+    });
+    if(!due.length) return;
+    due.forEach(r=>dueNotified.add(r.id+'@'+r.date+' '+r.time));
+    ls.set('notified_due', [...dueNotified].slice(-200));
+    fireDueNotification(due);
+    renderReminders(); // 到点后顶栏状态变为「已到点」标红
+  };
+  tick();
+  setInterval(tick, 30000);
 }
 
 /* =================================================================== Data */
@@ -1313,7 +1367,7 @@ function formModal(opts){
     const ph = f.placeholder? ' placeholder="'+esc(f.placeholder)+'"' : '';
     if(f.type==='select') return '<div class="field"><label>'+esc(f.label)+'</label><select id="'+f.id+'">'
       + f.options.map(o=>'<option value="'+esc(o.value)+'"'+(String(o.value)===String(f.value)?' selected':'')+'>'+esc(o.name)+'</option>').join('') + '</select></div>';
-    const type = f.type==='date'? ' type="date"' : '';
+    const type = f.type==='date'? ' type="date"' : f.type==='time'? ' type="time"' : '';
     return '<div class="field"><label>'+esc(f.label)+'</label><input id="'+f.id+'"'+type+' value="'+val+'"'+ph+'></div>';
   }).join('');
   openModal('<h3>'+esc(opts.title)+'<span class="x">×</span></h3>'+fields
@@ -1408,6 +1462,10 @@ renderCalendar();
 renderMail(false);
 checkBackup();
 adaptScroll();
+startDueTicker();
+// 跨天兜底：页面长期挂着时，日期变更后刷新顶栏与到点状态
+let _curDate = todayStr();
+setInterval(()=>{ const d=todayStr(); if(d!==_curDate){ _curDate=d; renderReminders(); renderDaily(); renderCalendar(); } }, 60000);
 pushReminderNotification(false);
 </script>
 </body>
