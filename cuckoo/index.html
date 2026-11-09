@@ -7,25 +7,26 @@
 <meta name="color-scheme" content="only light">
 <meta name="description" content="布谷鸟 Cuckoo 工作台：提醒、每日任务、看板、日历、邮件与 AI 文本/图像生成集成于一体的个人效率工作台（数据仅存本机浏览器）。">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d9488">
+<meta name="theme-color" content="#3370ff">
 <script>
 // PWA：仅在 https / localhost 环境注册 Service Worker（file:// 直开跳过，不影响本地使用）
 if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost','127.0.0.1'].includes(location.hostname))){
   addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 // 主题防闪烁：深色用户在 body 渲染前先把 html 底色刷为深色，避免首帧白闪（applyTheme 中还原）
-try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentElement.style.backgroundColor='#181b1e'; }catch(e){}
+try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentElement.style.backgroundColor='#1c1f26'; }catch(e){}
 </script>
 <!-- 云服务 SDK（CDN IIFE）：登录 + 云备份；defer 非阻塞加载，初始化在 DOMContentLoaded 兜底执行（失败不影响其余功能） -->
 <script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 <title>Cuckoo 工作台</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzBkOTQ4OCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE2IDExdjVsMy41IDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzMzNzBmZiIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE2IDExdjVsMy41IDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <style>
   :root{
-    --bg:#f2f4f7; --card:#ffffff; --primary:#0d9488; --primary-d:#0f766e;
-    --primary-soft:rgba(13,148,136,.10);
-    --text:#1f2937; --muted:#6b7280; --border:#e6e9ee; --border-strong:#cfd6de; --danger:#dc2626;
-    --warn:#f59e0b; --ok:#16a34a; --soft:#f0fdfa; --radius:14px;
+    /* 飞书风配色：主蓝 #3370ff + 冷调蓝灰中性色；阴影克制、以描边分层 */
+    --bg:#f2f3f5; --card:#ffffff; --primary:#3370ff; --primary-d:#245bdb;
+    --primary-soft:rgba(51,112,255,.10);
+    --text:#1f2329; --muted:#646a73; --border:#dee0e3; --border-strong:#bbbfc4; --danger:#f54a45;
+    --warn:#f59e0b; --ok:#16a34a; --soft:#f0f4ff; --radius:12px;
     --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.06);
     --shadow-lift:0 4px 10px rgba(16,24,40,.08),0 14px 32px rgba(16,24,40,.12);
     --shadow-pop:0 8px 24px rgba(16,24,40,.12);
@@ -33,8 +34,8 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
     /* 流式间距：随视口宽度在 12–20px 间缩放，卡片间距与内边距自适应各尺寸屏幕 */
     --gap:clamp(12px, 1vw, 20px);
     --card-pad:clamp(14px, 1.1vw, 22px);
-    /* 品牌渐变：teal → sky，用于主按钮/徽章/今日高亮等焦点元素 */
-    --grad:linear-gradient(135deg,#14b8a6,#0d9488 55%,#0284c7);
+    /* 品牌渐变：飞书蓝三阶，用于主按钮/徽章/今日高亮等焦点元素 */
+    --grad:linear-gradient(135deg,#4e83fd,#3370ff 55%,#245bdb);
     /* 统一运动语言：ease 主曲线（自然减速）/ spring 回弹曲线 */
     --ease:cubic-bezier(.22,1,.36,1);
     --ease-spring:cubic-bezier(.34,1.56,.64,1);
@@ -43,8 +44,8 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   html,body{margin:0;padding:0}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
-    /* 环境光：teal + sky 两组顶部光斑（纯 CSS，无图片资源），营造「晨光」氛围 */
-    background:radial-gradient(1100px 520px at 12% -8%,rgba(13,148,136,.10),transparent 60%),radial-gradient(900px 480px at 105% -5%,rgba(14,165,233,.08),transparent 55%),linear-gradient(180deg,#f6f8fa 0%,var(--bg) 320px); color:var(--text); font-size:14px; line-height:1.5;
+    /* 环境光：蓝紫两组低饱和光斑（纯 CSS，无图片资源），比 teal 版更克制 */
+    background:radial-gradient(1100px 520px at 12% -8%,rgba(51,112,255,.07),transparent 60%),radial-gradient(900px 480px at 105% -5%,rgba(0,145,255,.05),transparent 55%),linear-gradient(180deg,#f5f6f8 0%,var(--bg) 320px); color:var(--text); font-size:14px; line-height:1.5;
     min-height:100vh;
     display:flex; flex-direction:column;
   }
@@ -69,22 +70,22 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .reminders{display:flex; gap:8px; flex:1; overflow-x:auto; padding:6px 2px; scrollbar-width:thin}
   .reminders::-webkit-scrollbar{height:4px}
   .reminders::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
-  .rem-chip{display:flex; align-items:center; gap:6px; background:var(--soft); border:1px solid #cceae6; border-radius:999px; padding:5px 10px; white-space:nowrap; flex-shrink:0; max-width:260px;}
+  .rem-chip{display:flex; align-items:center; gap:6px; background:var(--soft); border:1px solid #c9d9ff; border-radius:999px; padding:5px 10px; white-space:nowrap; flex-shrink:0; max-width:260px;}
   .rem-chip.overdue{background:#fef2f2;border-color:#fecaca;color:var(--danger)}
   .rem-chip .rem-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px}
   .rem-chip .rem-date{font-size:11px;color:var(--muted)}
   .rem-chip.overdue .rem-date{color:var(--danger)}
-  .rem-done{border:none;background:var(--grad);color:#fff;border-radius:999px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 5px rgba(13,148,136,.35);transition:transform .18s var(--ease-spring)}
+  .rem-done{border:none;background:var(--grad);color:#fff;border-radius:999px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 5px rgba(51,112,255,.35);transition:transform .18s var(--ease-spring)}
   .rem-done:active{transform:scale(.85)}
   .rem-done svg{width:13px;height:13px}
   .rem-empty{color:var(--muted);font-size:13px;padding:6px 4px}
   .top-actions{display:flex;gap:8px;flex-shrink:0}
-  .btn{border:1px solid var(--border); background:#fff; color:var(--text); border-radius:10px; padding:8px 12px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; white-space:nowrap; flex-shrink:0;}
+  .btn{border:1px solid var(--border); background:#fff; color:var(--text); border-radius:8px; padding:8px 12px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; white-space:nowrap; flex-shrink:0;}
   .btn svg{width:16px;height:16px}
   .btn:hover{border-color:var(--border-strong);background:#f8fafc}
-  .btn-primary{background:var(--grad);border-color:var(--primary-d);color:#fff;box-shadow:0 2px 10px rgba(13,148,136,.30),inset 0 1px 0 rgba(255,255,255,.28)}
-  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(13,148,136,.38),inset 0 1px 0 rgba(255,255,255,.28)}
-  .btn-primary:active{transform:translateY(0) scale(.98);box-shadow:0 1px 5px rgba(13,148,136,.3),inset 0 1px 0 rgba(255,255,255,.2)}
+  .btn-primary{background:var(--grad);border-color:var(--primary-d);color:#fff;box-shadow:0 2px 10px rgba(51,112,255,.30),inset 0 1px 0 rgba(255,255,255,.28)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(51,112,255,.38),inset 0 1px 0 rgba(255,255,255,.28)}
+  .btn-primary:active{transform:translateY(0) scale(.98);box-shadow:0 1px 5px rgba(51,112,255,.3),inset 0 1px 0 rgba(255,255,255,.2)}
   /* 通用按压反馈：所有按钮按下轻微收缩，松手回弹（配合全局 transition） */
   .btn:active{transform:scale(.97)}
   .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
@@ -130,7 +131,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .muted-tip{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:8px}
   /* ---------- AI 一键动作 chips ---------- */
   .ai-chips{display:flex;gap:6px;flex-wrap:wrap}
-  .ai-chip{border:1px solid #cceae6;background:var(--soft);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--primary);white-space:nowrap;min-height:30px;transition:border-color .15s,background-color .15s,transform .15s}
+  .ai-chip{border:1px solid #c9d9ff;background:var(--soft);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--primary);white-space:nowrap;min-height:30px;transition:border-color .15s,background-color .15s,transform .15s}
   .ai-chip:hover{border-color:var(--primary);transform:translateY(-1px)}
   .ai-chip:active{transform:translateY(0)}
   body.dark .ai-chip{border-color:var(--border)}
@@ -153,14 +154,14 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .daily-tabs::-webkit-scrollbar{height:4px}
   .daily-tabs::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
   .daily-tab{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;flex-shrink:0;color:var(--muted)}
-  .daily-tab.active{background:var(--grad);border-color:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(13,148,136,.28)}
+  .daily-tab.active{background:var(--grad);border-color:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(51,112,255,.28)}
   /* ---------- 每日任务：连击打卡 + 本周统计条 ---------- */
   .daily-stats{display:flex;align-items:flex-end;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--soft);border-radius:10px}
   .ds-streak{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;align-self:center}
   .ds-bars{display:flex;gap:5px;align-items:flex-end;margin-left:auto}
   .ds-col{display:flex;flex-direction:column;align-items:center;gap:2px}
   .ds-col i{width:8px;border-radius:3px;background:var(--border);display:block;transition:height .35s var(--ease);transform-origin:bottom;animation:barGrow .5s var(--ease) .2s backwards}
-  .ds-col i.on{background:linear-gradient(180deg,var(--primary),#0ea5e9)}
+  .ds-col i.on{background:linear-gradient(180deg,var(--primary),#6c9bff)}
   .ds-col:nth-child(2) i{animation-delay:.25s}.ds-col:nth-child(3) i{animation-delay:.3s}
   .ds-col:nth-child(4) i{animation-delay:.35s}.ds-col:nth-child(5) i{animation-delay:.4s}
   .ds-col:nth-child(6) i{animation-delay:.45s}.ds-col:nth-child(7) i{animation-delay:.5s}
@@ -240,7 +241,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:1px solid transparent;position:relative;transition:background-color .15s}
   .cal-day:hover{background:#f1f5f9}
   .cal-day.other{color:#cbd5e1}
-  .cal-day.today{background:var(--grad);color:#fff;font-weight:700;box-shadow:0 3px 10px rgba(13,148,136,.38),inset 0 1px 0 rgba(255,255,255,.3)}
+  .cal-day.today{background:var(--grad);color:#fff;font-weight:700;box-shadow:0 3px 10px rgba(51,112,255,.38),inset 0 1px 0 rgba(255,255,255,.3)}
   .cal-day .dots{position:absolute;bottom:4px;left:0;right:0;display:flex;justify-content:center;gap:2px}
   .cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--primary)}
   .cal-day .dot.d-daily{background:var(--warn)}
@@ -289,7 +290,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:50;display:none;align-items:center;justify-content:center}
   .overlay.show{display:flex;animation:ovIn .22s ease both}
   @keyframes ovIn{from{opacity:0}}
-  .drawer{background:#fff;width:100%;max-width:460px;border-radius:18px;max-height:88vh;overflow:auto;padding:18px;margin:auto;box-shadow:var(--shadow-pop)}
+  .drawer{background:#fff;width:100%;max-width:460px;border-radius:16px;max-height:88vh;overflow:auto;padding:18px;margin:auto;box-shadow:var(--shadow-pop)}
   .drawer h3{margin:0 0 14px;font-size:17px;display:flex;align-items:center;gap:8px}
   .drawer h3 .x{margin-left:auto;width:32px;height:32px;border:none;background:#f1f5f9;border-radius:8px;font-size:18px;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
   .field{margin-bottom:12px}
@@ -372,15 +373,15 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .mail-del{position:absolute;top:8px;right:8px}
 
   /* ---------- Dark theme ---------- */
-  /* 冷调炭灰层次：页=--bg / 卡=--card / 内衬=--soft / 线=--border，与 teal 主色协调；文字 #f2f5f4 */
-  body.dark{ color-scheme:dark; --bg:#181b1e; --card:#22262a; --primary:#2dd4bf; --primary-d:#14b8a6; --primary-soft:rgba(45,212,191,.13);
-    --text:#f2f5f4; --muted:#9aa5ad; --border:#343a40; --border-strong:#465059; --soft:#2b3036;
-    --grad:linear-gradient(135deg,#2dd4bf,#14b8a6 55%,#0ea5e9);
+  /* 冷调蓝灰层次（飞书暗色风）：页=--bg / 卡=--card / 内衬=--soft / 线=--border；主蓝提亮保证对比度 */
+  body.dark{ color-scheme:dark; --bg:#1c1f26; --card:#252a33; --primary:#6294fe; --primary-d:#4e83fd; --primary-soft:rgba(98,148,254,.16);
+    --text:#f0f3f8; --muted:#98a2b3; --border:#3a4150; --border-strong:#4a5364; --soft:#2d3440;
+    --grad:linear-gradient(135deg,#6294fe,#3370ff 55%,#245bdb);
     --shadow:0 2px 8px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
     --shadow-lift:0 6px 14px rgba(0,0,0,.45),0 16px 36px rgba(0,0,0,.4);
     --shadow-pop:0 16px 48px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.05); }
   /* 环境光：页面顶部两组低饱和光斑（纯 CSS 渐变，无图片资源） */
-  body.dark{background:radial-gradient(1100px 520px at 15% -10%,rgba(45,212,191,.07),transparent 60%),radial-gradient(900px 460px at 108% -6%,rgba(14,165,233,.05),transparent 55%),var(--bg)}
+  body.dark{background:radial-gradient(1100px 520px at 15% -10%,rgba(98,148,254,.09),transparent 60%),radial-gradient(900px 460px at 108% -6%,rgba(0,145,255,.05),transparent 55%),var(--bg)}
   /* 卡片顶部内侧高光：模拟顶部受光面，增强层次 */
   body.dark .topbar{background:rgba(24,27,30,.78);border-bottom-color:var(--border)}
   body.dark .card{box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.05)}
@@ -389,11 +390,11 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   body.dark .kcard .kact button,body.dark .kadd2,body.dark .ic-btn{background:var(--card);color:var(--muted)}
   body.dark .daily-check{background:var(--soft)}
   body.dark .daily-check.on{background:var(--primary)}
-  body.dark .daily-check.on svg{color:#042f2e}
-  body.dark .btn.on{background:var(--primary);border-color:var(--primary);color:#042f2e}
+  body.dark .daily-check.on svg{color:#fff}
+  body.dark .btn.on{background:var(--primary);border-color:var(--primary);color:#fff}
   body.dark .daily-tab{background:var(--soft);border-color:var(--border);color:var(--muted)}
-  body.dark .daily-tab.active{background:var(--primary);border-color:var(--primary);color:#042f2e}
-  body.dark .btn-primary{background:var(--grad);border-color:#14b8a6;color:#042f2e;box-shadow:0 2px 10px rgba(45,212,191,.25),inset 0 1px 0 rgba(255,255,255,.35)}
+  body.dark .daily-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  body.dark .btn-primary{background:var(--grad);border-color:#4e83fd;color:#fff;box-shadow:0 2px 10px rgba(51,112,255,.30),inset 0 1px 0 rgba(255,255,255,.28)}
   body.dark .ksec .ksh .kadd2{background:var(--card);color:var(--muted)}
   body.dark .sec,body.dark .writer-result,body.dark .img-stage,body.dark .daily-card,
   body.dark .kcard,body.dark .mail-item,body.dark .muted-tip,body.dark .hint,body.dark .hist-item,
@@ -409,9 +410,9 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   body.dark .bar-track{background:var(--border)}
   body.dark .cal-day:hover{background:var(--border)}
   body.dark .cal-day.other{color:#6b6b6b}
-  body.dark .cal-day.today{color:#042f2e}
-  body.dark .rem-done{color:#042f2e;box-shadow:0 1px 5px rgba(45,212,191,.28)}
-  body.dark .cal-day.today{box-shadow:0 2px 8px rgba(45,212,191,.25)}
+  body.dark .cal-day.today{color:#fff}
+  body.dark .rem-done{color:#fff;box-shadow:0 1px 5px rgba(98,148,254,.32)}
+  body.dark .cal-day.today{box-shadow:0 2px 8px rgba(51,112,255,.30)}
   body.dark .rem-chip{background:var(--soft);border-color:#474747}
   body.dark .rem-chip.overdue{background:#450a0a;border-color:#7f1d1d;color:#fca5a5}
   body.dark .drawer .x{background:var(--border);color:var(--muted)}
@@ -674,7 +675,7 @@ function seedIfEmpty(){
     {id:rid(), title:'移动端适配验收', col:'todo'}
   ]);
   ls.set('email_cache', [
-    {id:'s1', from:'设计团队', subject:'Cuckoo 视觉规范 v2', date:todayStr()+' 09:12', snippet:'更新了主色板与卡片圆角，请确认后进入开发。', body:'Hi，\n\n附上 Cuckoo 视觉规范 v2：主色调整为 teal #0d9488，卡片圆角 14px，整体更轻盈。请确认后我们进入开发阶段。\n\n谢谢！'},
+    {id:'s1', from:'设计团队', subject:'Cuckoo 视觉规范 v2', date:todayStr()+' 09:12', snippet:'更新了主色板与卡片圆角，请确认后进入开发。', body:'Hi，\n\n附上 Cuckoo 视觉规范 v2：主色调整为飞书蓝 #3370ff，卡片圆角 12px，整体更克制、更贴近飞书的扁平质感。请确认后我们进入开发阶段。\n\n谢谢！'},
     {id:'s2', from:'产品周报', subject:'本周数据汇总', date:shiftDay(-1)+' 18:40', snippet:'DAU 环比 +12%，新增提醒功能使用率最高。', body:'本周关键数据：\n- DAU 环比 +12%\n- 提醒功能使用率最高（68%）\n- 图像设计模块待联调\n\n下周重点：移动端验收。'},
     {id:'s3', from:'客户 · 王先生', subject:'合作方案咨询', date:shiftDay(-2)+' 14:05', snippet:'看到你们的工作台产品，想了解企业版报价。', body:'您好，\n\n我们关注到 Cuckoo 工作台，想了解企业版的部署与报价方案，方便的话约个时间沟通。\n\n王', read:true}
   ]);
@@ -941,9 +942,9 @@ function drawShareCard(mode){
   const W=720, H=960;
   const c=document.createElement('canvas'); c.width=W; c.height=H;
   const ctx=c.getContext('2d');
-  // 背景：teal 渐变 + 两处装饰光斑
+  // 背景：飞书蓝渐变 + 两处装饰光斑
   const g=ctx.createLinearGradient(0,0,W,H);
-  g.addColorStop(0,'#0f766e'); g.addColorStop(1,'#0b3d3a');
+  g.addColorStop(0,'#245bdb'); g.addColorStop(1,'#12255c');
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   ctx.globalAlpha=.07; ctx.fillStyle='#ffffff';
   ctx.beginPath(); ctx.arc(640,140,190,0,Math.PI*2); ctx.fill();
