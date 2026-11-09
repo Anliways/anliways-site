@@ -55,6 +55,19 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
 #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2c2c2e; border:1px solid #3a3a3c; padding:10px 20px; border-radius:10px; font-size:13px; display:none; max-width:80vw; }
 #toast.err { border-color:#ff453a; color:#ff453a; }
 .status-line { font-size:12px; color:rgba(255,255,255,.45); margin:8px 0; min-height:16px; }
+/* 设置页折叠分组卡片 */
+.sec-card { background:#1c1c1e; border:1px solid #2c2c2e; border-radius:14px; margin-bottom:12px; overflow:hidden; }
+.sec-head { display:flex; align-items:center; gap:10px; padding:14px 18px; cursor:pointer; user-select:none; }
+.sec-head:hover { background:#222226; }
+.sec-title { font-size:14px; font-weight:600; }
+.sec-hint { font-size:12px; color:rgba(255,255,255,.4); flex:1; }
+.sec-caret { color:rgba(255,255,255,.4); font-size:12px; }
+.sec-body { padding:2px 18px 18px; border-top:1px solid #2c2c2e; }
+.sec-card.collapsed .sec-body { display:none; }
+/* 吸底保存栏：滚动时始终可见 */
+.save-bar { position:sticky; bottom:12px; display:flex; align-items:center; gap:10px; background:#1c1c1e; border:1px solid #3a3a3c; border-radius:12px; padding:10px 14px; z-index:5; }
+.save-bar #stf-save.unsaved { box-shadow:0 0 0 2px rgba(255,214,10,.55); }
+.dirty-badge { color:#ffd60a; font-size:12px; white-space:nowrap; }
 @media (max-width:640px){ .row2 { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -151,70 +164,85 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
 
   <!-- 站点设置模块 -->
   <div id="tab-settings" class="hidden">
-    <div class="panel">
-      <h2>站点设置</h2>
-      <div class="sub">写入 site-config.json，所有配置项均可选——留空的项自动使用网站内置默认值，保存后约 1 分钟部署生效</div>
+    <div class="sub" style="margin-bottom:12px;">写入 site-config.json，所有配置项均可选——留空的项自动使用网站内置默认值，保存后约 1 分钟部署生效。点击分组标题可展开 / 收起。</div>
 
-      <h2 style="font-size:14px;margin-top:14px;">站点名称</h2>
-      <div class="row2">
-        <div><label>浏览器标签标题前缀（留空使用 anliways）</label><input id="stf-title" placeholder="anliways"></div>
-      </div>
-
-      <h2 style="font-size:14px;margin-top:18px;">主页背景</h2>
-      <div class="sub">图片与渐变二选一：两者都留空时恢复默认纯色暗夜背景；渐变非空时优先于图片</div>
-      <div class="row2">
-        <div><label>背景图片（URL 或仓库相对路径）</label><input id="stf-bgimage" placeholder="assets/bg.jpg"></div>
-        <div><label>CSS 渐变（优先级更高）</label><input id="stf-gradient" placeholder="linear-gradient(135deg,#1a1a2e,#16213e)"></div>
-      </div>
-      <div class="row2">
-        <div><label>遮罩暗度 <span id="stf-overlay-val"></span>（0=无遮罩，1=全黑）</label><input type="range" id="stf-overlay" min="0" max="1" step="0.05"></div>
-        <div><label>背景模糊 <span id="stf-blur-val"></span>（0=清晰，最大 20px）</label><input type="range" id="stf-blur" min="0" max="20" step="1"></div>
-      </div>
-
-      <h2 style="font-size:14px;margin-top:18px;">关于页 · 社交链接</h2>
-      <div class="sub">非空时覆盖页面内置的社交平台列表；标签留空自动显示域名，图标留空使用通用链接图标</div>
-      <div id="stf-links"></div>
-      <button class="btn btn-sm" id="stf-add-link">＋ 添加社交链接</button>
-
-      <h2 style="font-size:14px;margin-top:18px;">头像</h2>
-      <div class="sub">应用于导航栏、主页名片与关于页三处圆形头像；可上传图片（≤2MB，自动存入仓库 assets/）或直接填图片地址；留空保留「an」文字占位</div>
-      <div class="row2">
-        <div>
-          <label>头像图片地址</label>
-          <input id="ab-avatar" placeholder="assets/avatar.jpg 或 https://…">
-          <div style="margin-top:8px;">
-            <label style="margin:0;">或从本机上传</label>
-            <input type="file" id="ab-avatar-file" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:7px;font-size:12px;">
+    <!-- 分组 1：个人资料 -->
+    <div class="sec-card" id="sec-profile">
+      <div class="sec-head"><span class="sec-title">个人资料</span><span class="sec-hint">头像 · 三处同步</span><span class="sec-caret">▾</span></div>
+      <div class="sec-body">
+        <div class="sub">应用于导航栏、主页名片与关于页三处圆形头像；可上传图片（≤2MB，保存时一并提交入库）或直接填图片地址；留空保留「an」文字占位</div>
+        <div class="row2">
+          <div>
+            <label>头像图片地址</label>
+            <input id="ab-avatar" placeholder="assets/avatar.jpg 或 https://…">
+            <div style="margin-top:8px;">
+              <label style="margin:0;">或从本机上传（点「保存并发布」时才上传）</label>
+              <input type="file" id="ab-avatar-file" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:7px;font-size:12px;">
+            </div>
+            <div class="status-line" id="ab-upload-status"></div>
           </div>
-          <div class="status-line" id="ab-upload-status"></div>
+          <div>
+            <label>预览</label>
+            <div id="ab-avatar-preview" style="width:72px;height:72px;border-radius:50%;background:#2c2c2e;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:24px;font-weight:600;overflow:hidden;">an</div>
+          </div>
         </div>
-        <div>
-          <label>预览</label>
-          <div id="ab-avatar-preview" style="width:72px;height:72px;border-radius:50%;background:#2c2c2e;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:24px;font-weight:600;overflow:hidden;">an</div>
+      </div>
+    </div>
+
+    <!-- 分组 2：主页外观 -->
+    <div class="sec-card collapsed" id="sec-appearance">
+      <div class="sec-head"><span class="sec-title">主页外观</span><span class="sec-hint">站点名称 · 背景图 / 遮罩 / 模糊</span><span class="sec-caret">▸</span></div>
+      <div class="sec-body">
+        <div class="row2">
+          <div><label>浏览器标签标题前缀（留空使用 anliways）</label><input id="stf-title" placeholder="anliways"></div>
+        </div>
+        <div class="sub" style="margin-top:10px;">背景图片与渐变二选一：两者都留空时恢复默认纯色暗夜背景；渐变非空时优先于图片</div>
+        <div class="row2">
+          <div><label>背景图片（URL 或仓库相对路径）</label><input id="stf-bgimage" placeholder="assets/bg.jpg"></div>
+          <div><label>CSS 渐变（优先级更高）</label><input id="stf-gradient" placeholder="linear-gradient(135deg,#1a1a2e,#16213e)"></div>
+        </div>
+        <div class="row2">
+          <div><label>遮罩暗度 <span id="stf-overlay-val"></span>（0=无遮罩，1=全黑）</label><input type="range" id="stf-overlay" min="0" max="1" step="0.05"></div>
+          <div><label>背景模糊 <span id="stf-blur-val"></span>（0=清晰，最大 20px）</label><input type="range" id="stf-blur" min="0" max="20" step="1"></div>
         </div>
       </div>
+    </div>
 
-      <h2 style="font-size:14px;margin-top:18px;">关于页文本</h2>
-      <div class="sub">均为可选：留空的字段继续使用页面内置文案；中英文分别对应语言切换</div>
-      <div class="row2">
-        <div><label>主标题（中文）</label><input id="ab-title-zh" placeholder="你好，我是 anliways 👋"></div>
-        <div><label>主标题（英文）</label><input id="ab-title-en" placeholder="Hello, I'm anliways 👋"></div>
-        <div><label>副标题（中文）</label><input id="ab-sub-zh" placeholder="个人开发者 · 独立媒体人 · 效率探索者"></div>
-        <div><label>副标题（英文）</label><input id="ab-sub-en" placeholder="Indie Developer · Independent Creator · Efficiency Explorer"></div>
+    <!-- 分组 3：关于页内容 -->
+    <div class="sec-card collapsed" id="sec-about">
+      <div class="sec-head"><span class="sec-title">关于页内容</span><span class="sec-hint">标题 / 简介 / 标签（中英双语）</span><span class="sec-caret">▸</span></div>
+      <div class="sec-body">
+        <div class="sub">均为可选：留空的字段继续使用页面内置文案；中英文分别对应语言切换</div>
+        <div class="row2">
+          <div><label>主标题（中文）</label><input id="ab-title-zh" placeholder="你好，我是 anliways 👋"></div>
+          <div><label>主标题（英文）</label><input id="ab-title-en" placeholder="Hello, I'm anliways 👋"></div>
+          <div><label>副标题（中文）</label><input id="ab-sub-zh" placeholder="个人开发者 · 独立媒体人 · 效率探索者"></div>
+          <div><label>副标题（英文）</label><input id="ab-sub-en" placeholder="Indie Developer · Independent Creator · Efficiency Explorer"></div>
+        </div>
+        <label>个人简介（中文）</label><textarea id="ab-desc-zh" rows="2"></textarea>
+        <label>个人简介（英文）</label><textarea id="ab-desc-en" rows="2"></textarea>
+        <div class="sub" style="margin-top:10px;">标签：非空时覆盖内置标签（地点 / 全栈开发等）；图标留空使用通用图标；某语言留空时回退到另一语言</div>
+        <div id="ab-tags"></div>
+        <button class="btn btn-sm" id="ab-add-tag">＋ 添加标签</button>
       </div>
-      <label>个人简介（中文）</label><textarea id="ab-desc-zh" rows="2"></textarea>
-      <label>个人简介（英文）</label><textarea id="ab-desc-en" rows="2"></textarea>
+    </div>
 
-      <h2 style="font-size:14px;margin-top:18px;">关于页 · 标签</h2>
-      <div class="sub">非空时覆盖内置标签（地点 / 全栈开发等）；图标留空使用通用图标；某语言留空时回退到另一语言</div>
-      <div id="ab-tags"></div>
-      <button class="btn btn-sm" id="ab-add-tag">＋ 添加标签</button>
-
-      <div class="status-line" id="stf-status"></div>
-      <div class="form-ops">
-        <button class="btn btn-primary" id="stf-save">保存并发布</button>
-        <button class="btn" id="stf-reset">放弃修改（重新加载）</button>
+    <!-- 分组 4：社交链接 -->
+    <div class="sec-card collapsed" id="sec-social">
+      <div class="sec-head"><span class="sec-title">社交链接</span><span class="sec-hint">关于页平台列表</span><span class="sec-caret">▸</span></div>
+      <div class="sec-body">
+        <div class="sub">非空时覆盖页面内置的社交平台列表；标签留空自动显示域名，图标留空使用通用链接图标</div>
+        <div id="stf-links"></div>
+        <button class="btn btn-sm" id="stf-add-link">＋ 添加社交链接</button>
       </div>
+    </div>
+
+    <!-- 吸底保存栏 -->
+    <div class="save-bar">
+      <span class="dirty-badge hidden" id="dirty-badge">● 有未保存更改</span>
+      <span class="status-line" id="stf-status" style="margin:0;flex:1;"></span>
+      <button class="btn" id="stf-reset">放弃修改</button>
+      <button class="btn btn-primary" id="stf-save">保存并发布</button>
     </div>
   </div>
 </div>
@@ -330,9 +358,14 @@ async function loadAll() {
 }
 
 /* ---------- 标签页 ---------- */
+let currentTab = 'projects';
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  if (t.dataset.tab === currentTab) return;
+  // 未保存保护：离开设置页前拦截确认
+  if (currentTab === 'settings' && settingsDirty && !confirm('站点设置有未保存的更改，确定离开（更改将丢失）？')) return;
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
+  currentTab = t.dataset.tab;
   $('tab-projects').classList.toggle('hidden', t.dataset.tab !== 'projects');
   $('tab-blog').classList.toggle('hidden', t.dataset.tab !== 'blog');
   $('tab-settings').classList.toggle('hidden', t.dataset.tab !== 'settings');
@@ -505,7 +538,41 @@ async function deletePost(idx) {
 
 /* ---------- 站点设置 ---------- */
 let settingsLoaded = false;
+let settingsDirty = false;
 const DEFAULTS = { overlay: 0.45, blur: 0 };
+
+/* 未保存状态跟踪：任何输入或增删条目都标记 dirty，保存/放弃后清除 */
+function markDirty() {
+  if (!settingsDirty) {
+    settingsDirty = true;
+    $('dirty-badge').classList.remove('hidden');
+    $('stf-save').classList.add('unsaved');
+  }
+}
+function clearDirty() {
+  settingsDirty = false;
+  $('dirty-badge').classList.add('hidden');
+  $('stf-save').classList.remove('unsaved');
+}
+// 事件委托：覆盖所有输入控件与动态添加的卡片内输入
+$('tab-settings').addEventListener('input', markDirty);
+$('tab-settings').addEventListener('click', e => {
+  // 仅增删条目算作修改；折叠/展开卡片不算
+  if (e.target.closest('#stf-add-link, #ab-add-tag, .del')) markDirty();
+});
+// 刷新/关闭页面前拦截
+window.addEventListener('beforeunload', e => {
+  if (settingsDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* 分组折叠：点击卡片标题切换展开/收起 */
+document.querySelectorAll('.sec-head').forEach(head => {
+  head.onclick = () => {
+    const card = head.parentElement;
+    card.classList.toggle('collapsed');
+    head.querySelector('.sec-caret').textContent = card.classList.contains('collapsed') ? '▸' : '▾';
+  };
+});
 
 function socialLinkCard(l = {}) {
   const div = document.createElement('div');
@@ -548,9 +615,9 @@ async function openSettings() {
     const tagBox = $('ab-tags'); tagBox.innerHTML = '';
     (Array.isArray(pf.tags) ? pf.tags : []).forEach(t => tagBox.appendChild(aboutTagCard(t)));
     syncRangeLabels();
+    pendingAvatar = null; $('ab-avatar-file').value = ''; $('ab-upload-status').textContent = '';
     $('stf-status').textContent = '';
   } catch (e) {
-    // 配置文件缺失或损坏：表单落到全部默认值，保存时会生成全新配置
     $('stf-title').value = ''; $('stf-bgimage').value = ''; $('stf-gradient').value = '';
     $('stf-overlay').value = DEFAULTS.overlay; $('stf-blur').value = DEFAULTS.blur;
     $('stf-links').innerHTML = '';
@@ -562,7 +629,14 @@ async function openSettings() {
     syncRangeLabels();
     $('stf-status').textContent = '配置加载失败（' + e.message + '），已回退默认值；直接保存将生成全新配置';
   }
+  // 每次打开：重置折叠状态（仅展开第一组）与未保存标记
+  document.querySelectorAll('.sec-card').forEach((c, i) => {
+    c.classList.toggle('collapsed', i > 0);
+    c.querySelector('.sec-caret').textContent = i > 0 ? '▸' : '▾';
+  });
+  pendingAvatar = null;
   settingsLoaded = true;
+  clearDirty();
 }
 
 /* 头像与关于页 */
@@ -586,38 +660,40 @@ function aboutTagCard(t = {}) {
 $('ab-add-tag').onclick = () => $('ab-tags').appendChild(aboutTagCard());
 $('ab-avatar').oninput = () => syncAvatarPreview($('ab-avatar').value.trim());
 
-// 选择本地图片后立即上传（base64 提交到仓库 assets/），成功后把地址填入输入框
-$('ab-avatar-file').onchange = async () => {
+// 选择本地图片：仅暂存（base64 + 扩展名），点「保存并发布」时与配置合并为一次原子提交
+let pendingAvatar = null; // { base64, ext, name }
+$('ab-avatar-file').onchange = () => {
   const file = $('ab-avatar-file').files[0];
   const st = $('ab-upload-status');
   st.textContent = '';
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) return st.textContent = '图片超过 2MB，请压缩后再上传';
+  if (!file) { pendingAvatar = null; return; }
+  if (file.size > 2 * 1024 * 1024) { pendingAvatar = null; $('ab-avatar-file').value = ''; return st.textContent = '图片超过 2MB，请压缩后再上传'; }
   const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[file.type];
-  if (!ext) return st.textContent = '仅支持 JPG / PNG / WebP / GIF';
-  st.textContent = '正在上传…';
-  try {
-    const dataUrl = await new Promise((ok, err) => {
-      const r = new FileReader();
-      r.onload = () => ok(r.result); r.onerror = () => err(new Error('读取文件失败'));
-      r.readAsDataURL(file);
-    });
-    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-    const path = 'assets/avatar-' + Date.now() + '.' + ext;
-    await apiCommit([{ path, content: base64, encoding: 'base64' }], 'chore(admin): 上传头像 ' + path);
-    $('ab-avatar').value = path;
-    syncAvatarPreview(path);
-    st.textContent = '✅ 图片已上传，记得点「保存并发布」让头像生效';
-  } catch (e) { st.textContent = '上传失败：' + e.message; }
+  if (!ext) { pendingAvatar = null; return st.textContent = '仅支持 JPG / PNG / WebP / GIF'; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    pendingAvatar = { base64: dataUrl.slice(dataUrl.indexOf(',') + 1), ext, name: file.name };
+    syncAvatarPreview(dataUrl); // 暂存预览用 dataURL，无需等待上传
+    st.textContent = '已选择 ' + file.name + '（' + (file.size < 1024 ? file.size + 'B' : Math.round(file.size / 1024) + 'KB') + '），点「保存并发布」时一并上传';
+  };
+  reader.onerror = () => st.textContent = '读取文件失败';
+  reader.readAsDataURL(file);
 };
 
 $('stf-add-link').onclick = () => $('stf-links').appendChild(socialLinkCard());
 $('stf-overlay').oninput = syncRangeLabels;
 $('stf-blur').oninput = syncRangeLabels;
-$('stf-reset').onclick = () => { settingsLoaded = false; openSettings(); };
+$('stf-reset').onclick = () => {
+  if (settingsDirty && !confirm('放弃当前未保存的修改并重新加载配置？')) return;
+  settingsLoaded = false;
+  openSettings();
+};
 
 $('stf-save').onclick = async () => {
   const status = $('stf-status');
+  // 暂存的新头像路径提前确定：配置与图片文件引用同一路径，单次提交保持一致
+  const newAvatarPath = pendingAvatar ? 'assets/avatar-' + Date.now() + '.' + pendingAvatar.ext : null;
   // 组装配置：空值一律不写入，交由前端兜底逻辑取默认
   const cfg = {};
   const title = $('stf-title').value.trim();
@@ -667,9 +743,9 @@ $('stf-save').onclick = async () => {
     if (icon) item.icon = icon;
     tags.push(item);
   }
-  if (avatar || pTitleZh || pTitleEn || pSubZh || pSubEn || pDescZh || pDescEn || tags.length) {
+  if (avatar || pTitleZh || pTitleEn || pSubZh || pSubEn || pDescZh || pDescEn || tags.length || pendingAvatar) {
     cfg.profile = {};
-    if (avatar) cfg.profile.avatar = avatar;
+    if (newAvatarPath || avatar) cfg.profile.avatar = newAvatarPath || avatar;
     if (pTitleZh) cfg.profile.titleZh = pTitleZh;
     if (pTitleEn) cfg.profile.titleEn = pTitleEn;
     if (pSubZh) cfg.profile.subtitleZh = pSubZh;
@@ -681,7 +757,21 @@ $('stf-save').onclick = async () => {
 
   status.textContent = '正在提交…';
   try {
-    await apiCommit([{ path: 'site-config.json', content: JSON.stringify(cfg, null, 2) + '\n' }], 'chore(admin): 更新站点设置');
+    // 头像图片与配置合并为一次原子提交：成功同时生效，失败则两者都未发生（无孤儿文件）
+    const files = [];
+    if (pendingAvatar && newAvatarPath) {
+      files.push({ path: newAvatarPath, content: pendingAvatar.base64, encoding: 'base64' });
+    }
+    files.push({ path: 'site-config.json', content: JSON.stringify(cfg, null, 2) + '\n' });
+    await apiCommit(files, pendingAvatar ? 'chore(admin): 更新站点设置并上传头像' : 'chore(admin): 更新站点设置');
+    if (pendingAvatar) {
+      $('ab-avatar').value = newAvatarPath; // 提交成功后把新头像路径回填到地址输入框
+      syncAvatarPreview(newAvatarPath);
+      pendingAvatar = null;
+      $('ab-avatar-file').value = '';
+      $('ab-upload-status').textContent = '';
+    }
+    clearDirty();
     toast('✅ 已提交，网站约 1 分钟后生效');
     status.textContent = '';
   } catch (e) { status.textContent = '提交失败：' + e.message; }
