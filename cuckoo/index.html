@@ -108,6 +108,15 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .hist-item .h-q{color:var(--primary);font-weight:600;margin-bottom:2px}
   .hist-item .h-a{color:#374151;white-space:pre-wrap}
   .muted-tip{font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:8px}
+  /* ---------- AI 一键动作 chips ---------- */
+  .ai-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .ai-chip{border:1px solid #cceae6;background:var(--soft);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--primary);white-space:nowrap;min-height:30px;transition:border-color .15s,background-color .15s,transform .15s}
+  .ai-chip:hover{border-color:var(--primary);transform:translateY(-1px)}
+  .ai-chip:active{transform:translateY(0)}
+  body.dark .ai-chip{border-color:var(--border)}
+  body.dark .ai-chip:hover{border-color:var(--primary)}
+  /* ---------- 移动端底部快捷导航 ---------- */
+  .bottom-nav{display:none}
 
   /* ---------- Image designer ---------- */
   .img-prompt{display:flex;gap:8px}
@@ -293,7 +302,16 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
     .search-box input{font-size:16px}
     /* 搜索框 + 筛选按钮放不下时换行，避免撑出横向滚动 */
     .kanban-toolbar{flex-wrap:wrap}
+    /* 底部快捷导航：固定底栏 + 安全区适配；主区预留高度避免遮挡末尾内容 */
+    .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:#fff;border-top:1px solid var(--border);padding:5px 8px calc(5px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(16,24,40,.08)}
+    .bottom-nav button{flex:1;border:none;background:transparent;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;min-height:44px;border-radius:10px}
+    .bottom-nav button svg{width:20px;height:20px}
+    .bottom-nav button:active{color:var(--primary);background:var(--primary-soft)}
+    .main{padding-bottom:88px}
+    .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
   }
+  body.dark .bottom-nav{background:var(--card);border-top-color:var(--border)}
+  body.dark .bottom-nav button{color:var(--muted)}
 
   /* ---------- 窄桌面/平板 (901-1200)：三栏过挤，改为上中下两行 ---------- */
   @media (min-width:901px) and (max-width:1200px){
@@ -437,6 +455,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
         </div>
         <div class="writer-box">
           <textarea id="textInput" placeholder="输入需求，例如：帮我写一段产品发布文案……"></textarea>
+          <div class="ai-chips" id="aiChips" aria-label="AI 一键动作"></div>
           <div class="writer-row"><button class="btn btn-primary" id="btnTextGen" style="flex:1" data-icon="gen">生成文本</button></div>
           <div class="writer-result" id="textResult">在「设置」中配置文本 API 后即可使用。</div>
           <div class="writer-row" style="margin-top:6px"><button class="btn btn-sm btn-ghost" id="btnTextCopy">复制结果</button></div>
@@ -542,6 +561,12 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   </section>
 </main>
 
+<nav class="bottom-nav" aria-label="快捷操作">
+  <button data-bn="task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>任务</button>
+  <button data-bn="rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>提醒</button>
+  <button data-bn="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>AI</button>
+  <button data-bn="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>顶部</button>
+</nav>
 <div class="overlay" id="overlay"><div class="drawer" id="drawer"></div></div>
 <div class="lightbox" id="lightbox">
   <button class="lb-close" onclick="closeLightbox()" aria-label="关闭预览" title="关闭预览">×</button>
@@ -690,6 +715,37 @@ function renderReminders(){
 }
 
 /* =================================================================== LEFT TOP: Text */
+/* ---------- AI 一键动作：预置 prompt 模板，工作记录自动作为上下文 ---------- */
+// 收集最近一周的工作上下文（每日任务 + 看板 + 未完成提醒），供「拆解任务 / 生成周报」使用
+function weekCtx(){
+  const from=shiftDay(-6), now=todayStr();
+  const dt=ls.get('daily_tasks',[]).filter(t=>t.date>=from&&t.date<=now);
+  const parts=[];
+  dt.filter(t=>t.done).forEach(t=>parts.push('[已完成] '+t.title+'（'+relDay(t.date)+'）'));
+  dt.filter(t=>!t.done).forEach(t=>parts.push('[未完成] '+t.title+'（'+relDay(t.date)+'）'));
+  ls.get('kanban',[]).forEach(c=>{
+    if(c.col==='done') parts.push('[已完成] '+c.title);
+    else if(c.col==='doing') parts.push('[进行中] '+c.title);
+  });
+  ls.get('reminders',[]).filter(r=>!r.done).slice(0,8).forEach(r=>parts.push('[待办] '+r.text));
+  return parts.slice(0,40).join('\n') || '（最近一周暂无工作记录）';
+}
+const AI_ACTIONS=[
+  {label:'✦ 拆解任务', needInput:false, build:v=>'把下面的内容拆解为可执行的待办清单：每行一条、动词开头、标注预计耗时，直接输出清单，不要解释：\n'+(v||weekCtx())},
+  {label:'✦ 润色文案', needInput:true, build:v=>'润色下面的文案：更精炼、更有吸引力、保留原意，直接输出结果，不要解释：\n'+(v||'')},
+  {label:'✦ 生成周报', needInput:false, build:()=>'根据下面的工作记录生成一份简短周报，分「本周完成 / 进行中 / 下周计划」三部分，语气简洁务实：\n'+weekCtx()},
+  {label:'✦ 朋友圈文案', needInput:true, build:v=>'根据下面的主题写一条朋友圈文案：轻松自然口语化，结尾配 2-3 个话题标签，直接输出：\n'+(v||'')}
+];
+function initAIChips(){
+  const box=$('#aiChips');
+  box.innerHTML=AI_ACTIONS.map((a,i)=>'<button class="ai-chip" data-i="'+i+'">'+esc(a.label)+'</button>').join('');
+  box.querySelectorAll('.ai-chip').forEach(b=>b.onclick=()=>{
+    const a=AI_ACTIONS[+b.dataset.i];
+    const v=$('#textInput').value.trim();
+    if(a.needInput && !v){ toast('请先在上方输入内容'); $('#textInput').focus(); return; }
+    genText(a.build(v));
+  });
+}
 let textHistQuery='';
 function renderTextHist(){
   const h = ls.get('text_history', []);
@@ -703,9 +759,10 @@ function renderTextHist(){
     $('#textInput').value=it.q; $('#textInput').focus(); toast('已回填到输入框');
   });
 }
-async function genText(){
+async function genText(overrideQ){
   const cfg = ls.get('config',{}).textApi||{};
-  const q = $('#textInput').value.trim();
+  // overrideQ：AI 一键动作传入的完整 prompt；按钮/快捷键触发时收到的是 event 对象，回退到输入框内容
+  const q = (typeof overrideQ==='string'? overrideQ : $('#textInput').value).trim();
   if(!q){ toast('请输入内容'); return; }
   const btn=$('#btnTextGen'), out=$('#textResult');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> 生成中';
@@ -871,6 +928,12 @@ function addDaily(){
     ],
     onSave:([title,date,prio])=>{
       if(!title.trim()){ toast('任务内容不能为空'); return false; }
+      // 自然语言识别：标题含「明天/周X/X号」等时自动改写日期
+      const parsed=parseNL(title.trim());
+      if(parsed && parsed.date){
+        title=parsed.title; date=parsed.date;
+        toast('已识别：'+relDay(parsed.date));
+      }
       const list=ls.get('daily_tasks',[]);
       list.push({id:rid(), title:title.trim(), date:date||todayStr(), prio:prio==='none'?'':prio, done:false});
       ls.set('daily_tasks',list); renderDaily();
@@ -1138,7 +1201,99 @@ function openReminderManager(){
   $('#remList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delReminder(b.dataset.del));
 }
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/* ---------- 自然语言快速录入：「明天早上9点交房租」→ {title:'交房租', date:明天, time:'09:00'} ---------- */
+const NL_WEEK={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0};
+const pad2=n=>String(n).padStart(2,'0');
+function parseNL(text){
+  let t=(text||'').trim(); if(!t) return null;
+  let date=null, time='', repeat='none', matched=false;
+  const today=new Date(), base=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  // 重复规则（每周X/每月X号 把「周/月」留在原文里，交给后面的星期/日期分支解析具体日子）
+  if(/每[天日]/.test(t)){ repeat='daily'; t=t.replace(/每[天日][，,、]*/,''); matched=true; }
+  else if(/每周/.test(t)){ repeat='weekly'; t=t.replace(/每周[，,、]*/,'周'); matched=true; }
+  else if(/每月/.test(t)){ repeat='monthly'; t=t.replace(/每月[，,、]*/,''); matched=true; }
+  // X月X号/日（今年已过则推到明年）
+  let m=t.match(/(\d{1,2})月(\d{1,2})[日号]/);
+  if(m){
+    const mo=+m[1]-1, dy=+m[2];
+    let d=new Date(today.getFullYear(),mo,dy);
+    if(d<base) d=new Date(today.getFullYear()+1,mo,dy);
+    if(mo>=0&&mo<12&&dy>=1&&dy<=31){ date=fmtDate(d); t=t.replace(m[0],''); matched=true; }
+  }
+  // X号/日（当月，已过则下月）
+  if(!date){
+    m=t.match(/(\d{1,2})[日号]/);
+    if(m){ const dy=+m[1];
+      if(dy>=1&&dy<=31){
+        let d=new Date(today.getFullYear(),today.getMonth(),dy);
+        if(d<base) d=new Date(today.getFullYear(),today.getMonth()+1,dy);
+        date=fmtDate(d); t=t.replace(m[0],''); matched=true;
+      }
+    }
+  }
+  // 周X / 星期X / 下周X / 下下周X
+  if(!date){
+    m=t.match(/(下下|下)?(?:周|星期)([一二三四五六日天])/);
+    if(m){ const w=NL_WEEK[m[2]];
+      let diff=(w-today.getDay()+7)%7; if(diff===0) diff=7;
+      if(m[1]) diff+=7*(m[1]==='下下'?2:1);
+      const d=new Date(); d.setDate(d.getDate()+diff);
+      date=fmtDate(d); t=t.replace(m[0],''); matched=true;
+    }
+  }
+  // 今天 / 明天 / 后天 / 大后天
+  if(!date){
+    if(/大后天/.test(t)){ date=shiftDay(3); t=t.replace('大后天',''); matched=true; }
+    else if(/后天/.test(t)){ date=shiftDay(2); t=t.replace('后天',''); matched=true; }
+    else if(/明天/.test(t)){ date=shiftDay(1); t=t.replace('明天',''); matched=true; }
+    else if(/今晚|今天/.test(t)){ date=todayStr(); t=t.replace(/今晚|今天/,''); matched=true; }
+  }
+  // 时间：早上9点 / 下午3点半 / 晚8点一刻 / 18:30 / 9点45分
+  m=t.match(/(凌晨|早上|早晨|上午|中午|下午|傍晚|晚上|夜里|早|晚)?\s*(\d{1,2})[点时:：]\s*(半|一刻|三刻|(\d{1,2})\s*分?)?/);
+  if(m){
+    let h=+m[2], min=0; const seg=m[1]||'';
+    if(m[3]==='半') min=30; else if(m[3]==='一刻') min=15; else if(m[3]==='三刻') min=45; else if(m[4]) min=+m[4];
+    if(/下午|晚上|傍晚|夜里|晚/.test(seg) && h<12) h+=12;
+    else if(/上午|早上|早晨|早/.test(seg) && h===12) h=0;
+    if(h>=0&&h<24&&min>=0&&min<60){ time=pad2(h)+':'+pad2(min); t=t.replace(m[0],''); matched=true; }
+  }
+  // 中文数字时间：下午两点 / 两点半 / 十二点一刻
+  if(!time){
+    const CN_NUM={'零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+    m=t.match(/(凌晨|早上|早晨|上午|中午|下午|傍晚|晚上|夜里|早|晚)?\s*(十[一二]?|[一二两三四五六七八九])\s*[点时]\s*(半|一刻|三刻)?/);
+    if(m){
+      const cs=m[2]; // 「十」=10，「十一/十二」=11/12，其余单字直查
+      let h= cs==='十'? 10 : cs.length===2? 10+CN_NUM[cs[1]] : CN_NUM[cs];
+      let min=0; const seg=m[1]||'';
+      if(m[3]==='半') min=30; else if(m[3]==='一刻') min=15; else if(m[3]==='三刻') min=45;
+      if(/下午|晚上|傍晚|夜里|晚/.test(seg) && h<12) h+=12;
+      else if(/上午|早上|早晨|早/.test(seg) && h===12) h=0;
+      else if(!seg && h>=1 && h<=6) h+=12; // 无时段修饰的「两点半」按下午理解
+      if(h>=0&&h<24){ time=pad2(h)+':'+pad2(min); t=t.replace(m[0],''); matched=true; }
+    }
+  }
+  // 「中午」单独出现（后面没有数字）：按 12:00 处理
+  if(!time && /中午/.test(t)){ time='12:00'; t=t.replace('中午',''); matched=true; }
+  t=t.replace(/^[，,、。\s]+/,'').replace(/[，,、。\s]+$/,'');
+  if(!t) return null;
+  return {title:t, date, time, repeat, matched};
+}
+// 在「提醒管理」中识别输入：自动回填日期/时间/重复字段，标题只留纯内容
+function nlApplyReminder(){
+  const parsed=parseNL($('#rText').value);
+  if(!parsed) return;
+  $('#rText').value=parsed.title;
+  if(parsed.date) $('#rDate').value=parsed.date;
+  if(parsed.time) $('#rTime').value=parsed.time;
+  const sel=$('#rRepeat'); if(sel && parsed.repeat!=='none') sel.value=parsed.repeat;
+  const parts=[];
+  if(parsed.date) parts.push(relDay(parsed.date));
+  if(parsed.time) parts.push(parsed.time);
+  if(parsed.repeat!=='none') parts.push(REPEATS[parsed.repeat]);
+  if(parts.length) toast('已识别：'+parts.join(' '));
+}
 function addReminder(){
+  nlApplyReminder(); // 先做自然语言识别回填，再按字段值入库
   const text=$('#rText').value.trim(); if(!text){ toast('请输入提醒内容'); return; }
   const time=$('#rTime').value.trim();
   if(time && !TIME_RE.test(time)){ toast('时间格式不正确'); return; }
@@ -1540,6 +1695,15 @@ const ICON_MAP={chevL:ICON_CHEV_L, chevR:ICON_CHEV_R, search:ICON_SEARCH, gen:IC
 document.querySelectorAll('[data-icon]').forEach(el=>{ el.insertAdjacentHTML('afterbegin', ICON_MAP[el.dataset.icon]||''); });
 
 applyTheme();
+initAIChips();
+// 移动端底部快捷导航（桌面隐藏，仅 ≤900px 显示）
+document.querySelectorAll('.bottom-nav [data-bn]').forEach(b=>b.onclick=()=>{
+  const act=b.dataset.bn;
+  if(act==='task') addDaily();
+  else if(act==='rem') openReminderManager();
+  else if(act==='ai'){ $('#genCard').scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>$('#textInput').focus({preventScroll:true}),350); }
+  else if(act==='top') window.scrollTo({top:0,behavior:'smooth'});
+});
 $('#btnTheme').onclick=toggleTheme;
 $('#btnAddReminder').onclick=openReminderManager;
 $('#btnData').onclick=openData;
