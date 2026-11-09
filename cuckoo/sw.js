@@ -5,7 +5,7 @@
  *  - 跨域请求（用户配置的 API）：完全不缓存
  * 发新版本时递增 CACHE 版本号即可清空旧缓存。
  */
-const CACHE = 'cuckoo-v8';
+const CACHE = 'cuckoo-v9';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {
