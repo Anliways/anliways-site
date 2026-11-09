@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>管理后台 · anliways</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#121212; color:rgba(255,255,255,.87); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; min-height:100vh; }
+a { color:#7ab8ff; }
+button { font-family:inherit; cursor:pointer; }
+.btn { background:#2c2c2e; color:#fff; border:1px solid #3a3a3c; border-radius:8px; padding:8px 16px; font-size:13px; }
+.btn:hover { background:#3a3a3c; }
+.btn-primary { background:#0a84ff; border-color:#0a84ff; }
+.btn-primary:hover { background:#2f95ff; }
+.btn-danger { background:transparent; border-color:#ff453a; color:#ff453a; }
+.btn-danger:hover { background:rgba(255,69,58,.12); }
+.btn-sm { padding:4px 10px; font-size:12px; }
+input, textarea, select { background:#1c1c1e; border:1px solid #3a3a3c; color:#fff; border-radius:8px; padding:9px 12px; font-size:14px; width:100%; font-family:inherit; }
+textarea.code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; line-height:1.6; min-height:320px; resize:vertical; white-space:pre; }
+input:focus, textarea:focus { outline:none; border-color:#0a84ff; }
+label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0 5px; }
+
+/* 登录 */
+#login-view { max-width:400px; margin:12vh auto; padding:32px; background:#1c1c1e; border-radius:16px; }
+#login-view h1 { font-size:20px; margin-bottom:6px; }
+#login-view p.hint { font-size:13px; color:rgba(255,255,255,.55); line-height:1.7; margin-bottom:18px; }
+.login-error { color:#ff453a; font-size:13px; margin-top:10px; min-height:18px; }
+
+/* 主界面 */
+#app-view { max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.topbar h1 { font-size:18px; }
+.topbar .who { font-size:12px; color:rgba(255,255,255,.45); margin-left:10px; }
+.tabs { display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #2c2c2e; padding-bottom:12px; }
+.tab { background:none; border:none; color:rgba(255,255,255,.5); font-size:14px; padding:6px 14px; border-radius:8px; }
+.tab.active { background:#2c2c2e; color:#fff; }
+.list-item { display:flex; justify-content:space-between; align-items:center; background:#1c1c1e; border:1px solid #2c2c2e; border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+.list-item .t { font-size:14px; font-weight:600; }
+.list-item .s { font-size:12px; color:rgba(255,255,255,.45); margin-top:3px; }
+.list-item .ops { display:flex; gap:6px; flex-shrink:0; margin-left:12px; }
+.panel { background:#1c1c1e; border:1px solid #2c2c2e; border-radius:16px; padding:22px; margin-bottom:16px; }
+.panel h2 { font-size:16px; margin-bottom:4px; }
+.panel .sub { font-size:12px; color:rgba(255,255,255,.45); margin-bottom:8px; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.subitem-card { background:#121212; border:1px solid #2c2c2e; border-radius:10px; padding:14px; margin-top:10px; position:relative; }
+.subitem-card .del { position:absolute; top:10px; right:10px; }
+.form-ops { display:flex; gap:10px; margin-top:18px; }
+.hidden { display:none !important; }
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2c2c2e; border:1px solid #3a3a3c; padding:10px 20px; border-radius:10px; font-size:13px; display:none; max-width:80vw; }
+#toast.err { border-color:#ff453a; color:#ff453a; }
+.status-line { font-size:12px; color:rgba(255,255,255,.45); margin:8px 0; min-height:16px; }
+@media (max-width:640px){ .row2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- 登录视图 -->
+<div id="login-view">
+  <h1>🔐 anliways 管理后台</h1>
+  <p class="hint">本后台通过 GitHub 令牌直接读写网站仓库，提交后自动部署。<br>
+  请粘贴 <b>Fine-grained PAT</b>（仅需授予 anliways/anliways-site 仓库的 Contents 读写权限）。令牌只保存在本浏览器，不会提交到任何服务器。</p>
+  <input type="password" id="token-input" placeholder="github_pat_… / ghp_…" autocomplete="off">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+    <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.6);">
+      <input type="checkbox" id="remember-cb" style="width:auto;"> 在本机记住（30 天）
+    </label>
+    <button class="btn btn-primary" id="login-btn" style="min-width:90px;">登录</button>
+  </div>
+  <div class="login-error" id="login-error"></div>
+  <p class="hint" style="margin-top:14px;border-top:1px solid #2c2c2e;padding-top:14px;">
+    令牌创建：github.com/settings/personal-access-tokens/new → Repository access 选 "Only select repositories" → anliways-site → Permissions 里 Contents 选 "Read and write"。
+  </p>
+</div>
+
+<!-- 主视图 -->
+<div id="app-view" class="hidden">
+  <div class="topbar">
+    <h1>管理后台<span class="who" id="whoami"></span></h1>
+    <div>
+      <a href="/" target="_blank" style="font-size:13px;margin-right:10px;">查看网站 ↗</a>
+      <button class="btn btn-sm" id="logout-btn">退出</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="projects">项目管理</button>
+    <button class="tab" data-tab="blog">博客管理</button>
+  </div>
+
+  <!-- 项目模块 -->
+  <div id="tab-projects">
+    <div id="projects-list"></div>
+    <button class="btn btn-primary" id="add-project-btn">＋ 新增项目</button>
+
+    <div id="project-form" class="panel hidden" style="margin-top:16px;">
+      <h2 id="pf-title">编辑项目</h2><div class="sub">必填：ID（小写英文/数字/连字符）、中文标题、图标类名</div>
+      <div class="row2">
+        <div><label>项目 ID（英文，唯一）</label><input id="pf-id"></div>
+        <div><label>图标类名（remixicon，如 ri-article-line）</label><input id="pf-icon"></div>
+        <div><label>标题（中文）</label><input id="pf-title-zh"></div>
+        <div><label>标题（英文）</label><input id="pf-title-en"></div>
+      </div>
+      <label>描述（中文）</label><textarea id="pf-desc-zh" rows="2"></textarea>
+      <label>描述（英文）</label><textarea id="pf-desc-en" rows="2"></textarea>
+      <div class="status-line" id="pf-status"></div>
+      <h2 style="font-size:14px;margin-top:14px;">子项 / 直达入口</h2>
+      <div id="pf-subitems"></div>
+      <button class="btn btn-sm" id="pf-add-sub">＋ 添加子项</button>
+      <div class="form-ops">
+        <button class="btn btn-primary" id="pf-save">保存并发布</button>
+        <button class="btn" id="pf-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 博客模块 -->
+  <div id="tab-blog" class="hidden">
+    <div id="posts-list"></div>
+    <button class="btn btn-primary" id="add-post-btn">＋ 写新文章</button>
+
+    <div id="post-form" class="panel hidden" style="margin-top:16px;">
+      <h2 id="ptf-title">新文章</h2>
+      <div class="sub">发布时将同步写入 posts.json 与 posts/&lt;id&gt;.md，通过 CI 校验后自动更新 RSS</div>
+      <div class="row2">
+        <div><label>文章 ID（英文，唯一，决定链接）</label><input id="ptf-id" placeholder="my-new-post"></div>
+        <div><label>作者</label><input id="ptf-author" value="anliways"></div>
+        <div><label>标题</label><input id="ptf-title-input"></div>
+        <div><label>日期</label><input id="ptf-date"></div>
+      </div>
+      <label>摘要（可选，显示在列表中）</label><textarea id="ptf-summary" rows="2"></textarea>
+      <label>正文 Markdown</label><textarea id="ptf-body" class="code" placeholder="### 标题&#10;&#10;正文支持 **Markdown** 语法…"></textarea>
+      <div class="status-line" id="ptf-status"></div>
+      <div class="form-ops">
+        <button class="btn btn-primary" id="ptf-save">保存并发布</button>
+        <button class="btn" id="ptf-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const REPO = 'Anliways/anliways-site';
+const BRANCH = 'main';
+const TOKEN_KEY = 'anliways_admin_token';
+let token = sessionStorage.getItem(TOKEN_KEY) || '';
+let projects = [], posts = [];
+
+/* ---------- 基础设施 ---------- */
+const $ = id => document.getElementById(id);
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.textContent = msg; t.className = isErr ? 'err' : ''; t.style.display = 'block';
+  clearTimeout(t._tm); t._tm = setTimeout(() => t.style.display = 'none', 3500);
+}
+async function gh(path, opts = {}) {
+  const res = await fetch('https://api.github.com' + path, {
+    ...opts,
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  if (res.status === 401) throw new Error('令牌无效或已过期（401）');
+  if (res.status === 403) throw new Error('权限不足或触发 GitHub 限流（403），请检查令牌的 Contents 读写权限');
+  if (!res.ok) throw new Error('GitHub API 错误 ' + res.status + '：' + path);
+  return res.json();
+}
+const b64decode = s => decodeURIComponent(escape(atob(s.replace(/\n/g, ''))));
+const b64encode = s => btoa(unescape(encodeURIComponent(s)));
+
+/* 原子化多文件提交：blob → tree → commit → 更新分支引用 */
+async function commitFiles(files, message) {
+  const ref = await gh(`/repos/${REPO}/git/ref/heads/${BRANCH}`);
+  const baseSha = ref.object.sha;
+  const baseCommit = await gh(`/repos/${REPO}/git/commits/${baseSha}`);
+  const tree = [];
+  for (const f of files) {
+    if (f.content === null) { tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null }); continue; }
+    const blob = await gh(`/repos/${REPO}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: f.content, encoding: 'utf-8' }) });
+    tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
+  }
+  const newTree = await gh(`/repos/${REPO}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: baseCommit.tree.sha, tree }) });
+  const commit = await gh(`/repos/${REPO}/git/commits`, { method: 'POST', body: JSON.stringify({ message, tree: newTree.sha, parents: [baseSha] }) });
+  await gh(`/repos/${REPO}/git/refs/heads/${BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha, force: false }) });
+  return commit.sha;
+}
+
+/* ---------- 登录 ---------- */
+async function tryLogin(tk, silent) {
+  token = tk.trim();
+  if (!token) { if (!silent) $('login-error').textContent = '请输入令牌'; return false; }
+  try {
+    const me = await gh('/user');
+    await gh('/repos/' + REPO); // 校验仓库访问权限
+    sessionStorage.setItem(TOKEN_KEY, token);
+    if ($('remember-cb').checked) localStorage.setItem(TOKEN_KEY, token);
+    enterApp(me.login || 'github-user');
+    return true;
+  } catch (e) {
+    if (silent) { localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY); }
+    if (!silent) $('login-error').textContent = e.message;
+    else $('login-error').textContent = '记住的令牌已失效，请重新输入';
+    return false;
+  }
+}
+function enterApp(login) {
+  $('login-view').classList.add('hidden');
+  $('app-view').classList.remove('hidden');
+  $('whoami').textContent = '· ' + login;
+  loadAll();
+}
+async function loadAll() {
+  try {
+    const [pj, ps] = await Promise.all([
+      gh(`/repos/${REPO}/contents/projects.json?ref=${BRANCH}`),
+      gh(`/repos/${REPO}/contents/posts.json?ref=${BRANCH}`)
+    ]);
+    projects = JSON.parse(b64decode(pj.content));
+    posts = JSON.parse(b64decode(ps.content));
+    renderProjects(); renderPosts();
+  } catch (e) { toast('加载数据失败：' + e.message, true); }
+}
+
+/* ---------- 标签页 ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  $('tab-projects').classList.toggle('hidden', t.dataset.tab !== 'projects');
+  $('tab-blog').classList.toggle('hidden', t.dataset.tab !== 'blog');
+});
+
+/* ---------- 项目管理 ---------- */
+function renderProjects() {
+  const box = $('projects-list');
+  box.innerHTML = projects.map((p, i) => `
+    <div class="list-item">
+      <div><div class="t">${esc(p.title_zh)} <span style="color:rgba(255,255,255,.35);font-weight:400;">${esc(p.title_en || '')}</span></div>
+      <div class="s">${esc(p.id)} · ${(p.subItems || []).length} 个子项</div></div>
+      <div class="ops">
+        <button class="btn btn-sm" data-edit="${i}">编辑</button>
+        <button class="btn btn-sm btn-danger" data-del="${i}">删除</button>
+      </div>
+    </div>`).join('') || '<p style="color:rgba(255,255,255,.4);font-size:13px;">暂无项目</p>';
+  box.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openProjectForm(+b.dataset.edit));
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteProject(+b.dataset.del));
+}
+let pfEditIdx = -1;
+function subItemCard(s = {}) {
+  const div = document.createElement('div');
+  div.className = 'subitem-card';
+  div.innerHTML = `
+    <button class="btn btn-sm btn-danger del">删除</button>
+    <div class="row2">
+      <div><label>子项标题（中文）</label><input class="si-tz" value="${esc(s.title_zh || '')}"></div>
+      <div><label>子项标题（英文）</label><input class="si-te" value="${esc(s.title_en || '')}"></div>
+      <div><label>子项描述（中文）</label><input class="si-dz" value="${esc(s.desc_zh || '')}"></div>
+      <div><label>子项描述（英文）</label><input class="si-de" value="${esc(s.desc_en || '')}"></div>
+      <div><label>图标类名</label><input class="si-icon" value="${esc(s.icon || '')}"></div>
+      <div><label>链接</label><input class="si-link" value="${esc(s.link || '')}"></div>
+    </div>`;
+  div.querySelector('.del').onclick = () => div.remove();
+  return div;
+}
+function openProjectForm(idx) {
+  pfEditIdx = idx;
+  const p = idx >= 0 ? projects[idx] : { id: '', title_zh: '', title_en: '', icon: '', desc_zh: '', desc_en: '', subItems: [] };
+  $('pf-title').textContent = idx >= 0 ? '编辑项目：' + p.title_zh : '新增项目';
+  $('pf-id').value = p.id; $('pf-id').readOnly = idx >= 0;
+  $('pf-icon').value = p.icon || '';
+  $('pf-title-zh').value = p.title_zh || ''; $('pf-title-en').value = p.title_en || '';
+  $('pf-desc-zh').value = p.desc_zh || ''; $('pf-desc-en').value = p.desc_en || '';
+  const sub = $('pf-subitems'); sub.innerHTML = '';
+  (p.subItems || []).forEach(s => sub.appendChild(subItemCard(s)));
+  $('pf-status').textContent = '';
+  $('project-form').classList.remove('hidden');
+  $('project-form').scrollIntoView({ behavior: 'smooth' });
+}
+$('pf-add-sub').onclick = () => $('pf-subitems').appendChild(subItemCard());
+$('add-project-btn').onclick = () => openProjectForm(-1);
+$('pf-cancel').onclick = () => $('project-form').classList.add('hidden');
+$('pf-save').onclick = async () => {
+  const id = $('pf-id').value.trim();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return $('pf-status').textContent = 'ID 仅限小写英文、数字、连字符';
+  if (!$('pf-title-zh').value.trim()) return $('pf-status').textContent = '中文标题必填';
+  if (!$('pf-icon').value.trim()) return $('pf-status').textContent = '图标类名必填（如 ri-article-line）';
+  if (pfEditIdx < 0 && projects.some(p => p.id === id)) return $('pf-status').textContent = 'ID 已存在';
+  const subItems = [...$('pf-subitems').children].map(c => {
+    const g = k => c.querySelector('.' + k).value.trim();
+    const s = { title_zh: g('si-tz'), title_en: g('si-te'), desc_zh: g('si-dz'), desc_en: g('si-de'), icon: g('si-icon'), link: g('si-link') };
+    return Object.fromEntries(Object.entries(s).filter(([, v]) => v));
+  });
+  const item = { id, title_zh: $('pf-title-zh').value.trim(), title_en: $('pf-title-en').value.trim(), icon: $('pf-icon').value.trim(), desc_zh: $('pf-desc-zh').value.trim(), desc_en: $('pf-desc-en').value.trim(), subItems };
+  if (pfEditIdx >= 0) projects[pfEditIdx] = item; else projects.push(item);
+  $('pf-status').textContent = '正在提交…';
+  try {
+    await commitFiles(
+      [{ path: 'projects.json', content: JSON.stringify(projects, null, 2) + '\n' }],
+      (pfEditIdx >= 0 ? 'chore(admin): 更新项目 ' : 'feat(admin): 新增项目 ') + id);
+    toast('✅ 已提交，Vercel 部署约 1 分钟后生效');
+    $('project-form').classList.add('hidden');
+    renderProjects();
+  } catch (e) {
+    loadAll().then(() => $('project-form').classList.add('hidden')); // 以仓库数据为准回滚本地状态
+    $('pf-status').textContent = '提交失败：' + e.message;
+  }
+};
+async function deleteProject(idx) {
+  const p = projects[idx];
+  if (!confirm('确定删除项目「' + p.title_zh + '」？将直接发布到线上。')) return;
+  projects.splice(idx, 1);
+  try {
+    await commitFiles([{ path: 'projects.json', content: JSON.stringify(projects, null, 2) + '\n' }], 'chore(admin): 删除项目 ' + p.id);
+    toast('✅ 已删除并提交'); renderProjects();
+  } catch (e) { projects.splice(idx, 0, p); toast('删除失败：' + e.message, true); }
+}
+
+/* ---------- 博客管理 ---------- */
+const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function zhDate() { const d = new Date(); return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+function renderPosts() {
+  const box = $('posts-list');
+  box.innerHTML = posts.map((p, i) => `
+    <div class="list-item">
+      <div><div class="t">${esc(p.title)}</div>
+      <div class="s">${esc(p.id)} · ${esc(p.date || '')}${p.summary ? ' · ' + esc(p.summary) : ''}</div></div>
+      <div class="ops">
+        <button class="btn btn-sm" data-editp="${i}">编辑</button>
+        <button class="btn btn-sm btn-danger" data-delp="${i}">删除</button>
+      </div>
+    </div>`).join('') || '<p style="color:rgba(255,255,255,.4);font-size:13px;">暂无文章</p>';
+  box.querySelectorAll('[data-editp]').forEach(b => b.onclick = () => openPostForm(+b.dataset.editp));
+  box.querySelectorAll('[data-delp]').forEach(b => b.onclick = () => deletePost(+b.dataset.delp));
+}
+let pfEditPost = null;
+async function openPostForm(idx) {
+  pfEditPost = idx >= 0 ? posts[idx].id : null;
+  $('ptf-title').textContent = idx >= 0 ? '编辑文章：' + posts[idx].title : '新文章';
+  if (idx >= 0) {
+    const p = posts[idx];
+    $('ptf-id').value = p.id; $('ptf-id').readOnly = true;
+    $('ptf-title-input').value = p.title || ''; $('ptf-author').value = p.author || 'anliways';
+    $('ptf-date').value = p.date || ''; $('ptf-summary').value = p.summary || '';
+    $('ptf-status').textContent = '正在加载正文…';
+    try {
+      const md = await gh(`/repos/${REPO}/contents/posts/${p.id}.md?ref=${BRANCH}`);
+      $('ptf-body').value = b64decode(md.content);
+      $('ptf-status').textContent = '';
+    } catch (e) { $('ptf-status').textContent = '正文加载失败：' + e.message; }
+  } else {
+    $('ptf-id').value = ''; $('ptf-id').readOnly = false;
+    $('ptf-title-input').value = ''; $('ptf-author').value = 'anliways';
+    $('ptf-date').value = zhDate(); $('ptf-summary').value = ''; $('ptf-body').value = '';
+    $('ptf-status').textContent = '';
+  }
+  $('post-form').classList.remove('hidden');
+  $('post-form').scrollIntoView({ behavior: 'smooth' });
+}
+$('add-post-btn').onclick = () => openPostForm(-1);
+$('ptf-cancel').onclick = () => $('post-form').classList.add('hidden');
+$('ptf-save').onclick = async () => {
+  const id = $('ptf-id').value.trim();
+  const title = $('ptf-title-input').value.trim();
+  if (!ID_RE.test(id)) return $('ptf-status').textContent = 'ID 仅限小写英文、数字、连字符';
+  if (!title) return $('ptf-status').textContent = '标题必填';
+  if (!$('ptf-body').value.trim()) return $('ptf-status').textContent = '正文不能为空';
+  const isNew = !pfEditPost;
+  if (isNew && posts.some(p => p.id === id)) return $('ptf-status').textContent = 'ID 已存在';
+  const entry = { id, title, date: $('ptf-date').value.trim() || zhDate(), author: $('ptf-author').value.trim() || 'anliways' };
+  const summary = $('ptf-summary').value.trim();
+  if (summary) entry.summary = summary;
+  const nextPosts = posts.filter(p => p.id !== id).concat([entry]);
+  // CI 校验规则：posts.json 与 posts/ 目录必须一一对应
+  const files = [{ path: 'posts.json', content: JSON.stringify(nextPosts, null, 2) + '\n' }, { path: `posts/${id}.md`, content: $('ptf-body').value }];
+  $('ptf-status').textContent = '正在提交…';
+  try {
+    await commitFiles(files, (isNew ? 'post(admin): 发布文章 ' : 'post(admin): 更新文章 ') + id);
+    posts = nextPosts;
+    toast('✅ 已提交，部署与 RSS 更新约 1-2 分钟');
+    $('post-form').classList.add('hidden');
+    renderPosts();
+  } catch (e) { $('ptf-status').textContent = '提交失败：' + e.message; }
+};
+async function deletePost(idx) {
+  const p = posts[idx];
+  if (!confirm('确定删除文章「' + p.title + '」？将同时删除 Markdown 文件并发布。')) return;
+  const nextPosts = posts.filter((_, i) => i !== idx);
+  try {
+    await commitFiles([
+      { path: 'posts.json', content: JSON.stringify(nextPosts, null, 2) + '\n' },
+      { path: `posts/${p.id}.md`, content: null }
+    ], 'post(admin): 删除文章 ' + p.id);
+    posts = nextPosts;
+    toast('✅ 已删除并提交'); renderPosts();
+  } catch (e) { toast('删除失败：' + e.message, true); }
+}
+
+/* ---------- 事件绑定 ---------- */
+$('login-btn').onclick = () => tryLogin($('token-input').value, false);
+$('token-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin($('token-input').value, false); });
+$('logout-btn').onclick = () => { sessionStorage.removeItem(TOKEN_KEY); localStorage.removeItem(TOKEN_KEY); location.reload(); };
+
+/* 启动：优先使用已记住的令牌静默登录 */
+(function () {
+  const saved = localStorage.getItem(TOKEN_KEY);
+  if (saved) { $('token-input').value = saved; $('remember-cb').checked = true; tryLogin(saved, true); }
+})();
+</script>
+</body>
+</html>

@@ -125,3 +125,12 @@ python3 -m http.server 8080
 - 域名：`anliways.com` 与 `www.anliways.com` 均绑定在 Vercel 项目中，裸域 301 跳转到 `www`。
 - 无构建步骤：仓库根目录即部署目录。
 - 注意：自定义域名配置仅在 Vercel 后台，如需迁移平台请先在 Vercel 中解除绑定。
+
+## 管理后台（/admin/）
+
+无需改代码即可在线维护内容：访问 `https://www.anliways.com/admin/`（不入站内导航，也不会被搜索引擎收录）。
+
+- **身份验证**：GitHub Fine-grained PAT。创建方式：`github.com/settings/personal-access-tokens/new` → Repository access 选 "Only select repositories" → 勾选 `anliways-site` → Permissions 中 Contents 选 "Read and write"。令牌仅存于浏览器本地，只发往 api.github.com。
+- **功能模块**：项目管理（增删改 projects.json 及子项/直达入口）、博客管理（新建/编辑/删除文章，自动同步 posts.json 与 posts/<id>.md，满足 CI 校验规则）。
+- **发布机制**：通过 GitHub Git Data API 原子化提交到 main 分支，随后自动触发 CI 校验、RSS 回写与 Vercel 部署。
+- **安全防护**：页面返回 `X-Robots-Tag: noindex`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer` 响应头；robots.txt 屏蔽抓取；提交失败自动回滚本地状态。
