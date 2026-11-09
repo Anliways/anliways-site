@@ -96,6 +96,7 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
   <div class="tabs">
     <button class="tab active" data-tab="projects">项目管理</button>
     <button class="tab" data-tab="blog">博客管理</button>
+    <button class="tab" data-tab="settings">站点设置</button>
   </div>
 
   <!-- 项目模块 -->
@@ -144,6 +145,41 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
       <div class="form-ops">
         <button class="btn btn-primary" id="ptf-save">保存并发布</button>
         <button class="btn" id="ptf-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站点设置模块 -->
+  <div id="tab-settings" class="hidden">
+    <div class="panel">
+      <h2>站点设置</h2>
+      <div class="sub">写入 site-config.json，所有配置项均可选——留空的项自动使用网站内置默认值，保存后约 1 分钟部署生效</div>
+
+      <h2 style="font-size:14px;margin-top:14px;">站点名称</h2>
+      <div class="row2">
+        <div><label>浏览器标签标题前缀（留空使用 anliways）</label><input id="stf-title" placeholder="anliways"></div>
+      </div>
+
+      <h2 style="font-size:14px;margin-top:18px;">主页背景</h2>
+      <div class="sub">图片与渐变二选一：两者都留空时恢复默认纯色暗夜背景；渐变非空时优先于图片</div>
+      <div class="row2">
+        <div><label>背景图片（URL 或仓库相对路径）</label><input id="stf-bgimage" placeholder="assets/bg.jpg"></div>
+        <div><label>CSS 渐变（优先级更高）</label><input id="stf-gradient" placeholder="linear-gradient(135deg,#1a1a2e,#16213e)"></div>
+      </div>
+      <div class="row2">
+        <div><label>遮罩暗度 <span id="stf-overlay-val"></span>（0=无遮罩，1=全黑）</label><input type="range" id="stf-overlay" min="0" max="1" step="0.05"></div>
+        <div><label>背景模糊 <span id="stf-blur-val"></span>（0=清晰，最大 20px）</label><input type="range" id="stf-blur" min="0" max="20" step="1"></div>
+      </div>
+
+      <h2 style="font-size:14px;margin-top:18px;">关于页 · 社交链接</h2>
+      <div class="sub">非空时覆盖页面内置的社交平台列表；标签留空自动显示域名，图标留空使用通用链接图标</div>
+      <div id="stf-links"></div>
+      <button class="btn btn-sm" id="stf-add-link">＋ 添加社交链接</button>
+
+      <div class="status-line" id="stf-status"></div>
+      <div class="form-ops">
+        <button class="btn btn-primary" id="stf-save">保存并发布</button>
+        <button class="btn" id="stf-reset">放弃修改（重新加载）</button>
       </div>
     </div>
   </div>
@@ -265,6 +301,8 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   t.classList.add('active');
   $('tab-projects').classList.toggle('hidden', t.dataset.tab !== 'projects');
   $('tab-blog').classList.toggle('hidden', t.dataset.tab !== 'blog');
+  $('tab-settings').classList.toggle('hidden', t.dataset.tab !== 'settings');
+  if (t.dataset.tab === 'settings' && !settingsLoaded) openSettings();
 });
 
 /* ---------- 项目管理 ---------- */
@@ -430,6 +468,101 @@ async function deletePost(idx) {
     toast('✅ 已删除并提交'); renderPosts();
   } catch (e) { toast('删除失败：' + e.message, true); }
 }
+
+/* ---------- 站点设置 ---------- */
+let settingsLoaded = false;
+const DEFAULTS = { overlay: 0.45, blur: 0 };
+
+function socialLinkCard(l = {}) {
+  const div = document.createElement('div');
+  div.className = 'subitem-card';
+  div.innerHTML = `
+    <button class="btn btn-sm btn-danger del">删除</button>
+    <div class="row2">
+      <div><label>链接 URL（必填，http/https 开头）</label><input class="sl-url" value="${esc(l.url || '')}" placeholder="https://github.com/Anliways"></div>
+      <div><label>显示标签（留空显示域名）</label><input class="sl-label" value="${esc(l.label || '')}" placeholder="GitHub"></div>
+      <div><label>图标类名（remixicon，留空用通用图标）</label><input class="sl-icon" value="${esc(l.icon || '')}" placeholder="ri-links-line"></div>
+    </div>`;
+  div.querySelector('.del').onclick = () => div.remove();
+  return div;
+}
+
+function syncRangeLabels() {
+  $('stf-overlay-val').textContent = $('stf-overlay').value;
+  $('stf-blur-val').textContent = $('stf-blur').value + 'px';
+}
+
+async function openSettings() {
+  $('stf-status').textContent = '正在加载配置…';
+  try {
+    const cfg = JSON.parse(await apiRead('site-config.json'));
+    $('stf-title').value = cfg.siteTitle || '';
+    const bg = cfg.homeBackground || {};
+    $('stf-bgimage').value = bg.image || '';
+    $('stf-gradient').value = bg.gradient || '';
+    $('stf-overlay').value = typeof bg.overlay === 'number' ? bg.overlay : DEFAULTS.overlay;
+    $('stf-blur').value = typeof bg.blur === 'number' ? bg.blur : DEFAULTS.blur;
+    const box = $('stf-links'); box.innerHTML = '';
+    (Array.isArray(cfg.socialLinks) ? cfg.socialLinks : []).forEach(l => box.appendChild(socialLinkCard(l)));
+    syncRangeLabels();
+    $('stf-status').textContent = '';
+  } catch (e) {
+    // 配置文件缺失或损坏：表单落到全部默认值，保存时会生成全新配置
+    $('stf-title').value = ''; $('stf-bgimage').value = ''; $('stf-gradient').value = '';
+    $('stf-overlay').value = DEFAULTS.overlay; $('stf-blur').value = DEFAULTS.blur;
+    $('stf-links').innerHTML = '';
+    syncRangeLabels();
+    $('stf-status').textContent = '配置加载失败（' + e.message + '），已回退默认值；直接保存将生成全新配置';
+  }
+  settingsLoaded = true;
+}
+
+$('stf-add-link').onclick = () => $('stf-links').appendChild(socialLinkCard());
+$('stf-overlay').oninput = syncRangeLabels;
+$('stf-blur').oninput = syncRangeLabels;
+$('stf-reset').onclick = () => { settingsLoaded = false; openSettings(); };
+
+$('stf-save').onclick = async () => {
+  const status = $('stf-status');
+  // 组装配置：空值一律不写入，交由前端兜底逻辑取默认
+  const cfg = {};
+  const title = $('stf-title').value.trim();
+  if (title) cfg.siteTitle = title;
+
+  const bgImage = $('stf-bgimage').value.trim();
+  const bgGradient = $('stf-gradient').value.trim();
+  if (bgImage && bgGradient) return status.textContent = '背景图片与渐变只能二选一，请清空其中一个';
+  const overlay = parseFloat($('stf-overlay').value);
+  const blur = parseFloat($('stf-blur').value);
+  if (bgImage || bgGradient) {
+    cfg.homeBackground = bgGradient
+      ? { gradient: bgGradient }
+      : { image: bgImage };
+    if (!isNaN(overlay)) cfg.homeBackground.overlay = Math.min(1, Math.max(0, overlay));
+    if (!isNaN(blur)) cfg.homeBackground.blur = Math.min(20, Math.max(0, blur));
+  }
+
+  const links = [];
+  for (const card of $('stf-links').children) {
+    const url = card.querySelector('.sl-url').value.trim();
+    if (!url) continue;
+    if (!/^(https?:\/\/|\/)/.test(url)) return status.textContent = '社交链接必须以 http:// 或 https:// 开头：' + url;
+    const item = { url };
+    const label = card.querySelector('.sl-label').value.trim();
+    const icon = card.querySelector('.sl-icon').value.trim();
+    if (label) item.label = label;
+    if (icon) item.icon = icon;
+    links.push(item);
+  }
+  if (links.length) cfg.socialLinks = links;
+
+  status.textContent = '正在提交…';
+  try {
+    await apiCommit([{ path: 'site-config.json', content: JSON.stringify(cfg, null, 2) + '\n' }], 'chore(admin): 更新站点设置');
+    toast('✅ 已提交，网站约 1 分钟后生效');
+    status.textContent = '';
+  } catch (e) { status.textContent = '提交失败：' + e.message; }
+};
 
 /* ---------- 退出 ---------- */
 $('logout-btn').onclick = async () => {

@@ -61,9 +61,9 @@
             const activeNav = document.querySelector('.nav-link.active');
             if (activeNav) {
                 const navText = activeNav.getAttribute(`data-${currentLang}`) || activeNav.innerText;
-                document.title = `anliways | ${navText}`;
+                document.title = `${siteName} | ${navText}`;
             } else {
-                document.title = currentLang === 'zh' ? "anliways | 个人主页" : "anliways | Home";
+                document.title = currentLang === 'zh' ? `${siteName} | 个人主页` : `${siteName} | Home`;
             }
         }
 
@@ -551,21 +551,57 @@
         // 主页是否配置了自定义背景（由 site-config.json 决定）
         let homeBgConfigured = false;
 
-        // 加载站点个性化配置：主页自定义背景（Discord 风格 splash）
-        // site-config.json 不存在或字段为空时自动回退为默认纯色暗夜背景
+        // 站点名称（浏览器标签前缀）：默认 anliways，可由 site-config.json 的 siteTitle 覆盖
+        let siteName = 'anliways';
+
+        // 加载站点个性化配置（site-config.json，全部字段可选）：
+        // ① siteTitle → 浏览器标签标题前缀；留空/缺失 → 沿用默认 anliways
+        // ② homeBackground → 主页自定义背景；image 与 gradient 均为空 → 默认纯色暗夜背景
+        // ③ socialLinks → 关于页社交链接；空数组/缺失 → 保留 index.html 内置列表
+        // 配置文件不存在、JSON 损坏或网络失败时静默降级为全部默认值，不影响页面可用
         function loadSiteConfig() {
             return fetch('site-config.json')
                 .then(res => res.ok ? res.json() : null)
                 .then(cfg => {
-                    const bg = cfg && cfg.homeBackground;
-                    if (!bg || (!bg.image && !bg.gradient)) return;
-                    const body = document.body;
-                    body.style.setProperty('--bg-image', bg.gradient || `url("${bg.image}")`);
-                    body.style.setProperty('--bg-overlay', String(typeof bg.overlay === 'number' ? bg.overlay : 0.45));
-                    body.style.setProperty('--bg-blur', String(typeof bg.blur === 'number' ? bg.blur : 0) + 'px');
-                    homeBgConfigured = true;
+                    if (!cfg || typeof cfg !== 'object') return;
+                    // ① 站点名称
+                    if (typeof cfg.siteTitle === 'string' && cfg.siteTitle.trim()) {
+                        siteName = cfg.siteTitle.trim();
+                    }
+                    // ② 主页背景（overlay 限 0~1，blur 限 0~20px，非法值回退默认）
+                    const bg = cfg.homeBackground;
+                    if (bg && typeof bg === 'object' && (bg.image || bg.gradient)) {
+                        const body = document.body;
+                        const overlay = typeof bg.overlay === 'number' ? bg.overlay : 0.45;
+                        const blur = typeof bg.blur === 'number' ? bg.blur : 0;
+                        body.style.setProperty('--bg-image', bg.gradient || `url("${bg.image}")`);
+                        body.style.setProperty('--bg-overlay', String(Math.min(1, Math.max(0, overlay))));
+                        body.style.setProperty('--bg-blur', String(Math.min(20, Math.max(0, blur))) + 'px');
+                        homeBgConfigured = true;
+                    }
+                    // ③ 社交链接（仅接受含有效 url 的条目）
+                    if (Array.isArray(cfg.socialLinks)) {
+                        const links = cfg.socialLinks.filter(l => l && typeof l.url === 'string' && l.url.trim());
+                        if (links.length) renderSocialLinks(links);
+                    }
                 })
                 .catch(() => {});
+        }
+
+        // 用配置覆盖关于页社交链接。条目 {url, label?, icon?}：
+        // label 留空 → 显示域名；icon 留空 → 通用链接图标；url 不合法的条目跳过
+        function renderSocialLinks(links) {
+            const grid = document.querySelector('.socials-grid');
+            if (!grid) return;
+            const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            grid.innerHTML = links.map(l => {
+                const url = l.url.trim();
+                let host = url;
+                try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; }
+                const label = (l.label || '').trim() || host;
+                const icon = (l.icon || '').trim() || 'ri-links-line';
+                return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="social-item"><i class="${esc(icon)}"></i><span>${esc(label)}</span></a>`;
+            }).join('');
         }
 
         // 初始化：加载语言设置与项目数据，并按当前 hash 渲染对应视图

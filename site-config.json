@@ -1,7 +1,10 @@
 {
+  "siteTitle": "",
   "homeBackground": {
     "image": "assets/bg.jpg",
+    "gradient": "",
     "overlay": 0.45,
     "blur": 0
-  }
+  },
+  "socialLinks": []
 }

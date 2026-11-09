@@ -131,7 +131,7 @@ python3 -m http.server 8080
 无需改代码即可在线维护内容：访问 `https://www.anliways.com/admin/`（不入站内导航，也不会被搜索引擎收录）。
 
 - **登录方式**：用户名 + 密码（首位注册者自动成为唯一管理员，之后注册入口关闭）。会话以 HMAC 签名的 HttpOnly Cookie 保持（默认 7 天，可勾选 30 天）。
-- **功能模块**：项目管理（增删改 projects.json 及子项/直达入口）、博客管理（新建/编辑/删除文章，自动同步 posts.json 与 posts/<id>.md，满足 CI 校验规则）。
+- **功能模块**：项目管理（增删改 projects.json 及子项/直达入口）、博客管理（新建/编辑/删除文章，自动同步 posts.json 与 posts/<id>.md，满足 CI 校验规则）、站点设置（编辑 site-config.json：站点标题、主页背景图片/渐变/遮罩/模糊、关于页社交链接；所有项可选，留空自动使用内置默认值）。
 - **发布机制**：`/api/content` 服务端函数代理 GitHub 提交（Git Data API 原子化多文件提交），随后自动触发 CI 校验、RSS 回写与 Vercel 部署。
 - **安全设计**：密码 scrypt 加盐哈希，账户数据 AES-256-GCM 加密后存于 `admin-data/users.json`；GitHub 令牌只存在于 Vercel 环境变量，前端全程不接触；登录失败按 IP 限流（15 分钟 10 次）；未登录访问内容接口一律 401；页面返回 `X-Robots-Tag: noindex`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`。
 

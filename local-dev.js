@@ -15,7 +15,7 @@ process.env.SESSION_SECRET = 'local-test-secret';
 /* ---------- 模拟 GitHub API 的内存对象存储 ---------- */
 const files = new Map();          // path -> content string
 const blobs = new Map();          // sha -> content
-['projects.json', 'posts.json', 'posts/test-article.md'].forEach(p => {
+['projects.json', 'posts.json', 'posts/test-article.md', 'site-config.json'].forEach(p => {
   files.set(p, fs.readFileSync(path.join(ROOT, p), 'utf8'));
 });
 let commitCount = 0;
@@ -49,8 +49,11 @@ async function mockFetch(url, opts = {}) {
   if (p === '/git/trees' && opts.method === 'POST') {
     const body = JSON.parse(opts.body);
     for (const item of body.tree) {
-      if (item.sha === null) files.delete(item.path);
-      else files.set(item.path, blobs.get(item.sha));
+      if (item.sha === null) { files.delete(item.path); continue; }
+      const content = blobs.get(item.sha);
+      files.set(item.path, content);
+      // 写穿到磁盘：前台静态服务从磁盘读文件，保证保存后前台能立即验证
+      try { fs.writeFileSync(path.join(ROOT, item.path), content); } catch (_) {}
     }
     return ok({ sha: 'tree_' + (++commitCount) });
   }
