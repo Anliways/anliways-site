@@ -584,8 +584,61 @@
                         const links = cfg.socialLinks.filter(l => l && typeof l.url === 'string' && l.url.trim());
                         if (links.length) renderSocialLinks(links);
                     }
+                    // ④ 个人资料：头像 + 关于页文本与标签（全部可选，留空保留内置内容）
+                    const pf = cfg.profile;
+                    if (pf && typeof pf === 'object') {
+                        if (typeof pf.avatar === 'string' && pf.avatar.trim()) applyAvatar(pf.avatar.trim());
+                        applyAboutProfile(pf);
+                    }
                 })
                 .catch(() => {});
+        }
+
+        // 自定义头像：替换导航栏 / 主页名片 / 关于页三处占位符为图片
+        function applyAvatar(url) {
+            ['.brand-avatar', '.avatar-placeholder', '.about-hero-avatar'].forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el && !el.querySelector('img')) {
+                    el.innerHTML = `<img src="${url.replace(/"/g, '&quot;')}" alt="avatar">`;
+                }
+            });
+        }
+
+        // 关于页文本与标签覆盖：写入 data-zh/data-en（语言切换继续生效），并按当前语言立即生效
+        function applyAboutProfile(pf) {
+            const setBilingual = (el, zh, en) => {
+                if (!el) return;
+                zh = (zh || '').trim(); en = (en || '').trim();
+                if (zh) el.setAttribute('data-zh', zh);
+                if (en) el.setAttribute('data-en', en);
+                const cur = el.getAttribute('data-' + currentLang);
+                if (cur) el.innerText = cur;
+            };
+            if (typeof pf.titleZh === 'string' || typeof pf.titleEn === 'string') {
+                setBilingual(document.querySelector('.about-hero-title'), pf.titleZh, pf.titleEn);
+            }
+            const subEl = document.querySelector('.about-hero-subtitle span');
+            if (subEl && (typeof pf.subtitleZh === 'string' || typeof pf.subtitleEn === 'string')) {
+                setBilingual(subEl, pf.subtitleZh, pf.subtitleEn);
+            }
+            if (document.querySelector('.about-hero-desc') && (typeof pf.descZh === 'string' || typeof pf.descEn === 'string')) {
+                setBilingual(document.querySelector('.about-hero-desc'), pf.descZh, pf.descEn);
+            }
+            // 标签：仅接受至少有一种语言的条目；icon 留空用 # 图标；en 留空回退中文
+            if (Array.isArray(pf.tags)) {
+                const tags = pf.tags.filter(t => t && ((t.zh || '').trim() || (t.en || '').trim()));
+                if (tags.length) {
+                    const box = document.querySelector('.about-tags');
+                    if (box) {
+                        const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+                        box.innerHTML = tags.map(t => {
+                            const zh = (t.zh || '').trim(), en = (t.en || '').trim() || zh;
+                            const icon = (t.icon || '').trim() || 'ri-hash-line';
+                            return `<span class="about-tag"><i class="${esc(icon)}"></i> <span data-zh="${esc(zh)}" data-en="${esc(en)}">${esc(currentLang === 'en' && en ? en : zh)}</span></span>`;
+                        }).join('');
+                    }
+                }
+            }
         }
 
         // 用配置覆盖关于页社交链接。条目 {url, label?, icon?}：

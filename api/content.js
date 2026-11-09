@@ -43,9 +43,12 @@ module.exports = async function handler(req, res) {
         if (f.content !== null && typeof f.content !== 'string') {
           return res.status(400).json({ error: '文件内容必须是字符串（删除请传 null）：' + f.path });
         }
+        if (f.encoding !== undefined && f.encoding !== 'utf-8' && f.encoding !== 'base64') {
+          return res.status(400).json({ error: 'encoding 仅支持 utf-8 或 base64：' + f.path });
+        }
       }
       const sha = await commitFiles(
-        files.map(f => ({ path: f.path, content: f.content })),
+        files.map(f => ({ path: f.path, content: f.content, encoding: f.encoding })),
         message, env.token);
       return res.status(200).json({ ok: true, sha });
     }

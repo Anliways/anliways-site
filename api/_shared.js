@@ -60,7 +60,8 @@ async function commitFiles(files, message, token) {
   const tree = [];
   for (const f of files) {
     if (f.content === null) { tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null }); continue; }
-    const blob = await gh(`/repos/${REPO}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: f.content, encoding: 'utf-8' }) }, token);
+    // encoding 可选 utf-8（默认，文本）或 base64（图片等二进制资源）
+    const blob = await gh(`/repos/${REPO}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: f.content, encoding: f.encoding || 'utf-8' }) }, token);
     tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
   }
   const newTree = await gh(`/repos/${REPO}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: baseCommit.tree.sha, tree }) }, token);

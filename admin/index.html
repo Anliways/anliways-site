@@ -176,6 +176,40 @@ label { display:block; font-size:12px; color:rgba(255,255,255,.5); margin:12px 0
       <div id="stf-links"></div>
       <button class="btn btn-sm" id="stf-add-link">＋ 添加社交链接</button>
 
+      <h2 style="font-size:14px;margin-top:18px;">头像</h2>
+      <div class="sub">应用于导航栏、主页名片与关于页三处圆形头像；可上传图片（≤2MB，自动存入仓库 assets/）或直接填图片地址；留空保留「an」文字占位</div>
+      <div class="row2">
+        <div>
+          <label>头像图片地址</label>
+          <input id="ab-avatar" placeholder="assets/avatar.jpg 或 https://…">
+          <div style="margin-top:8px;">
+            <label style="margin:0;">或从本机上传</label>
+            <input type="file" id="ab-avatar-file" accept="image/jpeg,image/png,image/webp,image/gif" style="padding:7px;font-size:12px;">
+          </div>
+          <div class="status-line" id="ab-upload-status"></div>
+        </div>
+        <div>
+          <label>预览</label>
+          <div id="ab-avatar-preview" style="width:72px;height:72px;border-radius:50%;background:#2c2c2e;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:24px;font-weight:600;overflow:hidden;">an</div>
+        </div>
+      </div>
+
+      <h2 style="font-size:14px;margin-top:18px;">关于页文本</h2>
+      <div class="sub">均为可选：留空的字段继续使用页面内置文案；中英文分别对应语言切换</div>
+      <div class="row2">
+        <div><label>主标题（中文）</label><input id="ab-title-zh" placeholder="你好，我是 anliways 👋"></div>
+        <div><label>主标题（英文）</label><input id="ab-title-en" placeholder="Hello, I'm anliways 👋"></div>
+        <div><label>副标题（中文）</label><input id="ab-sub-zh" placeholder="个人开发者 · 独立媒体人 · 效率探索者"></div>
+        <div><label>副标题（英文）</label><input id="ab-sub-en" placeholder="Indie Developer · Independent Creator · Efficiency Explorer"></div>
+      </div>
+      <label>个人简介（中文）</label><textarea id="ab-desc-zh" rows="2"></textarea>
+      <label>个人简介（英文）</label><textarea id="ab-desc-en" rows="2"></textarea>
+
+      <h2 style="font-size:14px;margin-top:18px;">关于页 · 标签</h2>
+      <div class="sub">非空时覆盖内置标签（地点 / 全栈开发等）；图标留空使用通用图标；某语言留空时回退到另一语言</div>
+      <div id="ab-tags"></div>
+      <button class="btn btn-sm" id="ab-add-tag">＋ 添加标签</button>
+
       <div class="status-line" id="stf-status"></div>
       <div class="form-ops">
         <button class="btn btn-primary" id="stf-save">保存并发布</button>
@@ -504,6 +538,15 @@ async function openSettings() {
     $('stf-blur').value = typeof bg.blur === 'number' ? bg.blur : DEFAULTS.blur;
     const box = $('stf-links'); box.innerHTML = '';
     (Array.isArray(cfg.socialLinks) ? cfg.socialLinks : []).forEach(l => box.appendChild(socialLinkCard(l)));
+    // 头像与关于页
+    const pf = cfg.profile || {};
+    $('ab-avatar').value = pf.avatar || '';
+    syncAvatarPreview(pf.avatar || '');
+    $('ab-title-zh').value = pf.titleZh || ''; $('ab-title-en').value = pf.titleEn || '';
+    $('ab-sub-zh').value = pf.subtitleZh || ''; $('ab-sub-en').value = pf.subtitleEn || '';
+    $('ab-desc-zh').value = pf.descZh || ''; $('ab-desc-en').value = pf.descEn || '';
+    const tagBox = $('ab-tags'); tagBox.innerHTML = '';
+    (Array.isArray(pf.tags) ? pf.tags : []).forEach(t => tagBox.appendChild(aboutTagCard(t)));
     syncRangeLabels();
     $('stf-status').textContent = '';
   } catch (e) {
@@ -511,11 +554,62 @@ async function openSettings() {
     $('stf-title').value = ''; $('stf-bgimage').value = ''; $('stf-gradient').value = '';
     $('stf-overlay').value = DEFAULTS.overlay; $('stf-blur').value = DEFAULTS.blur;
     $('stf-links').innerHTML = '';
+    $('ab-avatar').value = ''; syncAvatarPreview('');
+    $('ab-title-zh').value = ''; $('ab-title-en').value = '';
+    $('ab-sub-zh').value = ''; $('ab-sub-en').value = '';
+    $('ab-desc-zh').value = ''; $('ab-desc-en').value = '';
+    $('ab-tags').innerHTML = '';
     syncRangeLabels();
     $('stf-status').textContent = '配置加载失败（' + e.message + '），已回退默认值；直接保存将生成全新配置';
   }
   settingsLoaded = true;
 }
+
+/* 头像与关于页 */
+function syncAvatarPreview(src) {
+  const pv = $('ab-avatar-preview');
+  pv.innerHTML = src ? `<img src="${esc(src)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : 'an';
+}
+function aboutTagCard(t = {}) {
+  const div = document.createElement('div');
+  div.className = 'subitem-card';
+  div.innerHTML = `
+    <button class="btn btn-sm btn-danger del">删除</button>
+    <div class="row2">
+      <div><label>图标类名（留空用通用图标）</label><input class="at-icon" value="${esc(t.icon || '')}" placeholder="ri-map-pin-2-line"></div>
+      <div><label>中文文本</label><input class="at-zh" value="${esc(t.zh || '')}" placeholder="中国"></div>
+      <div><label>英文文本（留空回退中文）</label><input class="at-en" value="${esc(t.en || '')}" placeholder="China"></div>
+    </div>`;
+  div.querySelector('.del').onclick = () => div.remove();
+  return div;
+}
+$('ab-add-tag').onclick = () => $('ab-tags').appendChild(aboutTagCard());
+$('ab-avatar').oninput = () => syncAvatarPreview($('ab-avatar').value.trim());
+
+// 选择本地图片后立即上传（base64 提交到仓库 assets/），成功后把地址填入输入框
+$('ab-avatar-file').onchange = async () => {
+  const file = $('ab-avatar-file').files[0];
+  const st = $('ab-upload-status');
+  st.textContent = '';
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) return st.textContent = '图片超过 2MB，请压缩后再上传';
+  const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[file.type];
+  if (!ext) return st.textContent = '仅支持 JPG / PNG / WebP / GIF';
+  st.textContent = '正在上传…';
+  try {
+    const dataUrl = await new Promise((ok, err) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result); r.onerror = () => err(new Error('读取文件失败'));
+      r.readAsDataURL(file);
+    });
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    const path = 'assets/avatar-' + Date.now() + '.' + ext;
+    await apiCommit([{ path, content: base64, encoding: 'base64' }], 'chore(admin): 上传头像 ' + path);
+    $('ab-avatar').value = path;
+    syncAvatarPreview(path);
+    st.textContent = '✅ 图片已上传，记得点「保存并发布」让头像生效';
+  } catch (e) { st.textContent = '上传失败：' + e.message; }
+};
 
 $('stf-add-link').onclick = () => $('stf-links').appendChild(socialLinkCard());
 $('stf-overlay').oninput = syncRangeLabels;
@@ -555,6 +649,35 @@ $('stf-save').onclick = async () => {
     links.push(item);
   }
   if (links.length) cfg.socialLinks = links;
+
+  // 头像与关于页：留空的键不写入，交由前台兜底
+  const avatar = $('ab-avatar').value.trim();
+  const pTitleZh = $('ab-title-zh').value.trim(), pTitleEn = $('ab-title-en').value.trim();
+  const pSubZh = $('ab-sub-zh').value.trim(), pSubEn = $('ab-sub-en').value.trim();
+  const pDescZh = $('ab-desc-zh').value.trim(), pDescEn = $('ab-desc-en').value.trim();
+  const tags = [];
+  for (const card of $('ab-tags').children) {
+    const zh = card.querySelector('.at-zh').value.trim();
+    const en = card.querySelector('.at-en').value.trim();
+    if (!zh && !en) continue;
+    const item = {};
+    const icon = card.querySelector('.at-icon').value.trim();
+    if (zh) item.zh = zh;
+    if (en) item.en = en;
+    if (icon) item.icon = icon;
+    tags.push(item);
+  }
+  if (avatar || pTitleZh || pTitleEn || pSubZh || pSubEn || pDescZh || pDescEn || tags.length) {
+    cfg.profile = {};
+    if (avatar) cfg.profile.avatar = avatar;
+    if (pTitleZh) cfg.profile.titleZh = pTitleZh;
+    if (pTitleEn) cfg.profile.titleEn = pTitleEn;
+    if (pSubZh) cfg.profile.subtitleZh = pSubZh;
+    if (pSubEn) cfg.profile.subtitleEn = pSubEn;
+    if (pDescZh) cfg.profile.descZh = pDescZh;
+    if (pDescEn) cfg.profile.descEn = pDescEn;
+    if (tags.length) cfg.profile.tags = tags;
+  }
 
   status.textContent = '正在提交…';
   try {

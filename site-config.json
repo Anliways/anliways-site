@@ -6,5 +6,15 @@
     "overlay": 0.45,
     "blur": 0
   },
-  "socialLinks": []
+  "socialLinks": [],
+  "profile": {
+    "avatar": "",
+    "titleZh": "",
+    "titleEn": "",
+    "subtitleZh": "",
+    "subtitleEn": "",
+    "descZh": "",
+    "descEn": "",
+    "tags": []
+  }
 }

@@ -43,17 +43,21 @@ async function mockFetch(url, opts = {}) {
   if (p === '/git/blobs' && opts.method === 'POST') {
     const body = JSON.parse(opts.body);
     const sha = 'b' + crypto.randomBytes(6).toString('hex');
-    blobs.set(sha, body.content);
+    blobs.set(sha, { content: body.content, encoding: body.encoding || 'utf-8' });
     return ok({ sha });
   }
   if (p === '/git/trees' && opts.method === 'POST') {
     const body = JSON.parse(opts.body);
     for (const item of body.tree) {
       if (item.sha === null) { files.delete(item.path); continue; }
-      const content = blobs.get(item.sha);
+      const blob = blobs.get(item.sha);
+      const content = blob ? blob.content : '';
       files.set(item.path, content);
       // 写穿到磁盘：前台静态服务从磁盘读文件，保证保存后前台能立即验证
-      try { fs.writeFileSync(path.join(ROOT, item.path), content); } catch (_) {}
+      try {
+        fs.writeFileSync(path.join(ROOT, item.path),
+          blob && blob.encoding === 'base64' ? Buffer.from(content, 'base64') : content);
+      } catch (_) {}
     }
     return ok({ sha: 'tree_' + (++commitCount) });
   }
