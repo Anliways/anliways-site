@@ -102,8 +102,9 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   /* ---------- Layout (左-中-右) ---------- */
   /* 页面级滚动：主区自然高度，内容随页面下滚；顶栏 sticky 吸顶 */
   .main{flex:1; display:flex; gap:var(--gap); padding:var(--gap)}
-  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:2}
-  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:1}
+  /* AI 列居左：视觉顺序 = AI(左) → 今日清单/项目进度(中) → 日程/收件箱(右) */
+  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:1}
+  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:2}
   .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:3}
   /* 卡片材质：顶部内侧高光模拟受光面；hover 阴影加深（不位移，避免大面积抖动） */
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.75); padding:var(--card-pad); display:flex; flex-direction:column; min-height:0; transition:box-shadow .25s var(--ease),border-color .25s var(--ease);}
@@ -728,7 +729,7 @@ const ls = {
    - seeded:         boolean（是否已初始化种子数据）
 ------------------------------------------------------- */
 /* ---------- 首次打开：不预置任何示例数据，改为让用户选身份 ---------- */
-// 以前这里会灌一批「开发者示例」（接入 API / 联调 / 移动端验收），
+// 以前这里会灌一批「开发者示例」（接入 API / 联调 / 内测清单），
 // 对新用户来说像别人的项目，反而不知道从哪开始。改成选身份 → 自动铺一套真实清单。
 function seedIfEmpty(){
   if(ls.get('seeded', false)) return;
