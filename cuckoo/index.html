@@ -136,6 +136,25 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
   .daily-tabs::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
   .daily-tab{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap;flex-shrink:0;color:var(--muted)}
   .daily-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  /* ---------- 每日任务：连击打卡 + 本周统计条 ---------- */
+  .daily-stats{display:flex;align-items:flex-end;gap:10px;margin-bottom:8px;padding:8px 12px;background:var(--soft);border-radius:10px}
+  .ds-streak{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;align-self:center}
+  .ds-bars{display:flex;gap:5px;align-items:flex-end;margin-left:auto}
+  .ds-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .ds-col i{width:8px;border-radius:3px;background:var(--border);display:block;transition:height .3s ease}
+  .ds-col i.on{background:linear-gradient(180deg,var(--primary),var(--primary-d))}
+  .ds-col em{font-style:normal;font-size:9px;color:var(--muted);line-height:1}
+  .ds-total{font-size:11px;color:var(--muted);white-space:nowrap;align-self:center;margin-left:4px}
+  body.dark .ds-streak{color:var(--text)}
+  /* ---------- 场景模板卡片 ---------- */
+  .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+  .tpl-card{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--soft);display:flex;flex-direction:column;gap:4px;transition:border-color .15s,box-shadow .15s}
+  .tpl-card:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+  .tpl-card .tp-name{font-weight:600;font-size:14px}
+  .tpl-card .tp-desc{font-size:12px;color:var(--muted);line-height:1.4}
+  .tpl-card .tp-meta{font-size:11px;color:var(--muted)}
+  .tpl-card .btn{margin-top:6px;align-self:flex-start}
+  body.dark .tpl-card{background:var(--bg)}
   .daily-wrap{display:flex;align-items:center;gap:6px}
   .daily-arrow{width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted)}
   .daily-scroll{flex:1;display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;scroll-behavior:smooth}
@@ -423,6 +442,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
     <button class="btn btn-sm" id="btnAddReminder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>提醒
     </button>
+    <button class="btn btn-sm" id="btnTemplates">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>模板
+    </button>
     <button class="btn btn-sm" id="btnData">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>数据
     </button>
@@ -497,6 +519,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || ['localhost'
         <div class="act"><button class="btn btn-sm btn-ghost" id="btnDailyAdd">+ 添加</button></div>
       </div>
       <div class="daily-tabs" id="dailyTabs"></div>
+      <div class="daily-stats" id="dailyStats"></div>
       <div class="daily-wrap">
         <button class="daily-arrow" id="dailyLeft" aria-label="向左滚动" title="向左滚动" data-icon="chevL"></button>
         <div class="daily-scroll" id="dailyScroll"></div>
@@ -857,6 +880,61 @@ function compressImage(src){
   });
 }
 
+/* =================================================================== 场景模板 */
+// 预置模板：一键添加每日任务 / 看板 / 提醒（additive，不覆盖现有数据）；off=距今天数
+const TEMPLATES=[
+  {id:'exam', name:'📚 备考学习', desc:'学习计划、刷题、错题复盘，按节奏推进到模考',
+    daily:[{t:'制定本周学习计划',off:0},{t:'刷题 50 道',off:0},{t:'错题复盘',off:1},{t:'整理笔记',off:2}],
+    kanban:[{t:'过基础知识点',c:'doing'},{t:'真题训练',c:'todo'},{t:'错题本二刷',c:'todo'},{t:'全真模考',c:'todo'}],
+    rems:[{text:'复习时间',time:'20:00',repeat:'daily',off:0}]},
+  {id:'side', name:'💼 副业经营', desc:'选品、内容、客户跟进，每天推进一点点',
+    daily:[{t:'回复客户咨询',off:0},{t:'发布 1 条推广内容',off:0},{t:'记录今日流水',off:0}],
+    kanban:[{t:'选品调研',c:'todo'},{t:'上架商品',c:'doing'},{t:'内容排期表',c:'todo'},{t:'月度复盘',c:'todo'}],
+    rems:[{text:'查看经营数据',time:'21:00',repeat:'daily',off:0}]},
+  {id:'fit', name:'🏃 健身计划', desc:'训练、饮食、作息，把运动变成习惯',
+    daily:[{t:'训练 30 分钟',off:0},{t:'喝够 8 杯水',off:0},{t:'23 点前睡觉',off:0},{t:'拉伸放松',off:1}],
+    kanban:[{t:'适应期（第 1 周）',c:'doing'},{t:'进阶期（第 2-3 周）',c:'todo'},{t:'巩固期（第 4 周）',c:'todo'}],
+    rems:[{text:'运动时间',time:'19:00',repeat:'daily',off:0}]},
+  {id:'job', name:'🎯 求职冲刺', desc:'简历、投递、面试，机会不漏接',
+    daily:[{t:'投递 5 份简历',off:0},{t:'练习 3 道面试题',off:0},{t:'跟进已投递的公司',off:1}],
+    kanban:[{t:'修改简历',c:'doing'},{t:'整理作品集',c:'todo'},{t:'模拟面试',c:'todo'},{t:'跟进 Offer',c:'todo'}],
+    rems:[{text:'查看简历回复',time:'10:00',repeat:'daily',off:0}]},
+  {id:'creator', name:'✍️ 内容创作', desc:'选题、初稿、发布，保持稳定更新',
+    daily:[{t:'收集 3 个选题',off:0},{t:'写内容初稿',off:0},{t:'回复评论区',off:0}],
+    kanban:[{t:'选题库',c:'doing'},{t:'脚本/初稿撰写',c:'todo'},{t:'拍摄/剪辑',c:'todo'},{t:'发布与推广',c:'todo'}],
+    rems:[{text:'发布今日内容',time:'20:00',repeat:'daily',off:0}]}
+];
+function openTemplates(){
+  openModal('<h3>场景模板<span class="x">×</span></h3>'
+    +'<div class="hint">一键把一套预置的「每日任务 + 看板 + 提醒」添加到工作台，适合快速开始一个新目标。只做添加，不会覆盖你已有的内容。</div>'
+    +'<div class="tpl-grid">'+TEMPLATES.map(t=>
+      '<div class="tpl-card"><div class="tp-name">'+esc(t.name)+'</div><div class="tp-desc">'+esc(t.desc)+'</div>'
+      +'<div class="tp-meta">任务 '+t.daily.length+' · 看板 '+t.kanban.length+(t.rems&&t.rems.length?' · 提醒 '+t.rems.length:'')+'</div>'
+      +'<button class="btn btn-sm btn-primary" data-tpl="'+t.id+'">使用</button></div>').join('')+'</div>');
+  $('#drawer').querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{
+    const tpl=TEMPLATES.find(x=>x.id===b.dataset.tpl); if(tpl) applyTemplate(tpl);
+  });
+}
+function applyTemplate(tpl){
+  uiConfirm('将「'+tpl.name+'」的预置任务 / 看板 / 提醒添加到工作台？现有内容不受影响。',
+    ()=>{
+      const dt=ls.get('daily_tasks',[]);
+      tpl.daily.forEach(d=>dt.push({id:rid(),title:d.t,date:shiftDay(d.off||0),done:false,prio:''}));
+      ls.set('daily_tasks',dt);
+      const kb=ls.get('kanban',[]);
+      tpl.kanban.forEach(k=>kb.push({id:rid(),title:k.t,col:k.c,due:''}));
+      ls.set('kanban',kb);
+      if(tpl.rems&&tpl.rems.length){
+        const rm=ls.get('reminders',[]);
+        tpl.rems.forEach(r=>rm.push({id:rid(),text:r.text,date:shiftDay(r.off||0),time:r.time||'',repeat:r.repeat||'none',done:false}));
+        ls.set('reminders',rm);
+      }
+      closeModal();
+      renderDaily(); renderKanban(); renderReminders(); renderCalendar();
+      toast('已应用模板「'+tpl.name+'」');
+    }, {title:'应用场景模板', okText:'应用'});
+}
+
 /* =================================================================== CENTER TOP: Daily tasks */
 let dailySel = 'today';
 const DAILY_TABS = [
@@ -868,13 +946,35 @@ const DAILY_TABS = [
 ];
 function dailyDateFor(id){ const t=DAILY_TABS.find(x=>x.id===id); return t&&t.off!=null? shiftDay(t.off): null; }
 const PRIO = {high:{name:'高', color:'#ef4444'}, mid:{name:'中', color:'#f59e0b'}, low:{name:'低', color:'#3b82f6'}};
+/* ---------- 连击打卡 + 本周完成统计 ---------- */
+// 统计口径：按任务日期统计每天完成数；连击=从今天（或昨天）往前连续有完成的天数
+function renderDailyStats(){
+  const list=ls.get('daily_tasks',[]);
+  const days=[]; for(let i=6;i>=0;i--) days.push(shiftDay(-i));
+  const counts=days.map(d=>list.filter(t=>t.done&&t.date===d).length);
+  const weekTotal=counts.reduce((a,b)=>a+b,0);
+  let streak=0, i=6;
+  if(counts[6]===0) i=5; // 今天还没完成不打断连击，从昨天起算
+  for(;i>=0;i--){ if(counts[i]>0) streak++; else break; }
+  const max=Math.max(1,...counts);
+  const bars=days.map((d,j)=>{
+    const h=counts[j]? Math.max(5, Math.round(counts[j]/max*16)) : 3;
+    const wd='日一二三四五六'[new Date(d.replace(/-/g,'/')).getDay()];
+    return '<span class="ds-col" title="'+relDay(d)+' 完成 '+counts[j]+' 件"><i class="'+(counts[j]?'on':'')+'" style="height:'+h+'px"></i><em>'+wd+'</em></span>';
+  }).join('');
+  $('#dailyStats').innerHTML=
+    '<span class="ds-streak">'+(streak>0? '🔥 连续 '+streak+' 天' : '🌱 完成第一件事，点亮打卡')+'</span>'
+    +'<span class="ds-bars">'+bars+'</span>'
+    +'<span class="ds-total">本周 '+weekTotal+' 件</span>';
+}
 function renderDaily(){
   $('#dailyTabs').innerHTML = DAILY_TABS.map(t=>`<button class="daily-tab ${t.id===dailySel?'active':''}" data-id="${t.id}">${t.label}</button>`).join('');
   $('#dailyTabs').querySelectorAll('.daily-tab').forEach(b=>b.onclick=()=>{ dailySel=b.dataset.id; renderDaily(); });
+  renderDailyStats();
   const list = ls.get('daily_tasks', []);
   const dsel = dailyDateFor(dailySel);
   const shown = dsel? list.filter(t=>t.date===dsel) : list;
-  if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有任务，点右上角「+ 添加」。</div>'; return; }
+  if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有任务，点右上角「+ 添加」，或用顶栏「模板」一键开始。</div>'; return; }
   $('#dailyScroll').innerHTML = shown.map(t=>{
     const pr = PRIO[t.prio];
     return `<div class="daily-card ${t.done?'done':''}">
@@ -1705,6 +1805,7 @@ document.querySelectorAll('.bottom-nav [data-bn]').forEach(b=>b.onclick=()=>{
   else if(act==='top') window.scrollTo({top:0,behavior:'smooth'});
 });
 $('#btnTheme').onclick=toggleTheme;
+$('#btnTemplates').onclick=openTemplates;
 $('#btnAddReminder').onclick=openReminderManager;
 $('#btnData').onclick=openData;
 $('#btnSettings').onclick=openSettings;
