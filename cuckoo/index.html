@@ -53,7 +53,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
   ::-webkit-scrollbar-thumb:hover{background:#b6c0cb}
   ::-webkit-scrollbar-track{background:transparent}
-  input,textarea,select{font-family:inherit;font-size:16px;color:var(--text)}
+  input,textarea,select{font-family:inherit;font-size:16px;color:var(--text);min-width:0}
 
   /* ---------- Top bar ---------- */
   .topbar{height:var(--topbar-h); display:flex; align-items:center; gap:12px; padding:0 16px; background:#fff; border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; z-index:30;}
@@ -298,14 +298,15 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   .toast button:hover{background:rgba(255,255,255,.3)}
   @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 
-  /* ---------- 窄桌面/平板 (901-1200)：三栏过挤，改为上中下两行 ---------- */
-  @media (min-width:901px) and (max-width:1200px){
+  /* ---------- 窄窗口 (≤1200)：三栏过挤，改为换行堆叠，卡片占满栏宽自适应 ----------
+     注意：手机端 viewport 固定 1280，永远不命中此断点；此规则只服务于可调窄的桌面窗口 */
+  @media (max-width:1200px){
     .main{flex-wrap:wrap}
     .col-left{flex:1 1 300px}
     .col-center{flex:1.4 1 420px}
-    .col-right{flex:1 1 100%; flex-direction:row; align-items:flex-start}
-    #calCard{flex:0 1 480px}
-    #emailCard{flex:1 1 320px}
+    .col-right{flex:1 1 100%; flex-direction:row; flex-wrap:wrap; align-items:flex-start}
+    #calCard{flex:1 1 340px}
+    #emailCard{flex:1 1 280px}
   }
 
   /* ---------- 大屏 (>1600)：内容限宽居中，卡片与间距随 --gap/--card-pad 放大，充分利用空间 ---------- */
