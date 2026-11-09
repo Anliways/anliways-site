@@ -1,6 +1,18 @@
 {
   "headers": [
     {
+      "source": "/assets/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/assets/vendor/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }
+      ]
+    },
+    {
       "source": "/codeleaf/:path*",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=604800" }
@@ -8,6 +20,12 @@
     },
     {
       "source": "/codeleaf",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800" }
+      ]
+    },
+    {
+      "source": "/codeleaf/",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=604800" }
       ]
@@ -25,15 +43,9 @@
       ]
     },
     {
-      "source": "/assets/vendor/:path*",
+      "source": "/cuckoo/",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }
-      ]
-    },
-    {
-      "source": "/assets/:path*",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
+        { "key": "Cache-Control", "value": "public, max-age=604800" }
       ]
     }
   ]
