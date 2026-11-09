@@ -102,9 +102,9 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   /* ---------- Layout (左-中-右) ---------- */
   /* 页面级滚动：主区自然高度，内容随页面下滚；顶栏 sticky 吸顶 */
   .main{flex:1; display:flex; gap:var(--gap); padding:var(--gap)}
-  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
-  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
-  .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap)}
+  .col-left{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:2}
+  .col-center{flex:2.2; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:1}
+  .col-right{flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gap); order:3}
   /* 卡片材质：顶部内侧高光模拟受光面；hover 阴影加深（不位移，避免大面积抖动） */
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.75); padding:var(--card-pad); display:flex; flex-direction:column; min-height:0; transition:box-shadow .25s var(--ease),border-color .25s var(--ease);}
   .card:hover{box-shadow:var(--shadow-lift),inset 0 1px 0 rgba(255,255,255,.75); border-color:var(--border-strong)}
@@ -420,6 +420,70 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
   body.dark ::-webkit-scrollbar-thumb:hover{background:var(--border-strong)}
   /* ---------- Today panel 已移除：与顶栏提醒条/每日任务/日历功能重复（2026-11-09） ---------- */
 
+  /* ---------- 今日焦点条 + 记一笔（打开就能用：一眼看到今天，一句话记下事情） ---------- */
+  .focusbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px var(--card-pad);border-bottom:1px solid var(--border);
+    background:linear-gradient(90deg,var(--primary-soft),rgba(51,112,255,.02) 55%,transparent)}
+  .fb-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 300px;flex-wrap:wrap}
+  .fb-title{font-weight:650;font-size:13.5px;color:var(--text);white-space:nowrap}
+  .fb-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+  .fb-chip{border:1px solid var(--border);background:var(--card);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer;transition:border-color .16s var(--ease),color .16s var(--ease)}
+  .fb-chip:hover{border-color:var(--primary);color:var(--primary)}
+  .fb-chip.plain{cursor:default}
+  .fb-chip.plain:hover{border-color:var(--border);color:var(--muted)}
+  .fb-chip.hot{background:#fff7ed;border-color:#fed7aa;color:#c2410c}
+  .fb-chip.fire{background:#fff7ed;border-color:#fed7aa;color:#c2410c;font-weight:600}
+  .fb-add{display:flex;align-items:center;gap:8px;flex:0 1 400px;min-width:240px}
+  .fb-add input{flex:1;min-width:0;border:1px solid var(--border);background:var(--card);border-radius:999px;padding:8px 14px;font-size:13.5px;color:var(--text);transition:border-color .16s var(--ease),box-shadow .16s var(--ease)}
+  .fb-add input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .fb-add input::placeholder{color:var(--muted)}
+
+  /* ---------- 到点提醒浮层（页面内强提示，不依赖系统通知权限） ---------- */
+  .due-pop{position:fixed;right:18px;bottom:18px;z-index:95;width:330px;max-width:calc(100vw - 36px);background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-pop);padding:13px;animation:dueIn .28s var(--ease-spring)}
+  .dp-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:10px}
+  .dp-bell{width:26px;height:26px;border-radius:8px;background:#fef3c7;color:#b45309;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .dp-item{border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:8px;background:var(--soft)}
+  .dp-item:last-of-type{margin-bottom:0}
+  .dpi-t{font-size:13.5px;font-weight:600;margin-bottom:2px;word-break:break-word}
+  .dpi-m{font-size:11.5px;color:var(--muted);margin-bottom:7px}
+  .dp-act{display:flex;gap:6px}
+  .dp-foot{display:flex;gap:6px;margin-top:9px}
+  @keyframes dueIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+
+  /* ---------- 完成庆祝（连击外显） ---------- */
+  .celebrate{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:96;background:var(--grad);color:#fff;border-radius:16px;padding:13px 24px;text-align:center;
+    box-shadow:0 14px 40px rgba(51,112,255,.38);animation:celIn .42s var(--ease-spring)}
+  .cel-big{font-size:21px;font-weight:800;letter-spacing:.4px}
+  .cel-sub{font-size:12px;opacity:.9;margin-top:2px}
+  @keyframes celIn{0%{opacity:0;transform:translate(-50%,-14px) scale(.9)}60%{opacity:1;transform:translate(-50%,2px) scale(1.02)}100%{transform:translate(-50%,0) scale(1)}}
+
+  /* ---------- 会员与额度 ---------- */
+  .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:10px 0}
+  .plan-card{border:1px solid var(--border);border-radius:12px;padding:11px;background:var(--card);display:flex;flex-direction:column;gap:3px}
+  .plan-card.rec{border-color:var(--primary);background:var(--primary-soft)}
+  .plan-name{font-weight:700;font-size:12.5px}
+  .plan-price{font-size:19px;font-weight:800;color:var(--primary);letter-spacing:-.5px;line-height:1.2}
+  .plan-price small{font-size:10.5px;font-weight:500;color:var(--muted)}
+  .plan-li{font-size:11px;color:var(--muted);line-height:1.65}
+  .usage-bar{height:6px;border-radius:999px;background:var(--border);overflow:hidden;margin:7px 0 5px}
+  .usage-bar i{display:block;height:100%;background:var(--grad);border-radius:999px;transition:width .3s var(--ease)}
+
+  /* ---------- 首启身份选择 ---------- */
+  .persona-grid{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+  .persona{display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--card);cursor:pointer;text-align:left;
+    transition:border-color .16s var(--ease),box-shadow .2s var(--ease),transform .2s var(--ease)}
+  .persona:hover{border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-1px)}
+  .p-emoji{font-size:19px;line-height:1}
+  .p-name{font-weight:650;font-size:13.5px}
+  .p-desc{font-size:11.5px;color:var(--muted);margin-top:1px}
+
+  /* ---------- 项目进度折叠（默认收起，去掉「工作看板」的压迫感） ---------- */
+  #kanbanCard.collapsed .kanban-toolbar,#kanbanCard.collapsed .kpi,#kanbanCard.collapsed #kanban{display:none}
+  .ksum{font-size:12px;color:var(--muted);white-space:nowrap}
+
+  body.dark .fb-chip.hot,body.dark .fb-chip.fire{background:#3a2410;border-color:#5c3a17;color:#fdba74}
+  body.dark .dp-bell{background:#3a2410;color:#fbbf24}
+  body.dark .plan-card.rec{background:rgba(98,148,254,.12)}
+
   /* 减少动效偏好：系统开启「减弱动态效果」时停用全部动画与过渡 */
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
@@ -446,16 +510,26 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>模板
     </button>
     <button class="btn btn-sm" id="btnData">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>数据
-    </button>
-    <button class="btn btn-sm" id="btnAccount">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>账号
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>备份
     </button>
     <button class="btn btn-sm" id="btnSettings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>设置
     </button>
   </div>
 </header>
+
+<!-- 今日焦点 + 记一笔：打开先看到「今天」，一句话就能记下事情 -->
+<div class="focusbar" id="focusBar">
+  <div class="fb-main">
+    <span class="fb-title" id="fbTitle">今天</span>
+    <span class="fb-meta" id="fbMeta"></span>
+  </div>
+  <div class="fb-add">
+    <input id="quickAdd" type="text" autocomplete="off" aria-label="快速记一笔"
+      placeholder="记一笔：明天下午三点给王姐回电话">
+    <button class="btn btn-primary btn-sm" id="btnQuickAdd">记下</button>
+  </div>
+</div>
 
 <div class="backup-hint" id="backupHint" hidden>
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -474,15 +548,15 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
         <div class="card-head">
           <div class="ttl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
-            纯文本编写
+            AI 写作
           </div>
-          <div class="act"><button class="btn btn-sm btn-ghost" id="btnTextHistClear">清除历史</button><button class="btn btn-sm btn-ghost" id="btnTextClear">清空输入</button></div>
+          <div class="act"><button class="btn btn-sm btn-ghost" id="btnTextHistClear">清除历史</button><button class="btn btn-sm btn-ghost" id="btnTextClear">清空</button></div>
         </div>
         <div class="writer-box">
-          <textarea id="textInput" placeholder="输入需求，例如：帮我写一段产品发布文案……"></textarea>
+          <textarea id="textInput" placeholder="说一句话，或写清要求，例如：帮我写一段产品发布文案……"></textarea>
           <div class="ai-chips" id="aiChips" aria-label="AI 一键动作"></div>
           <div class="writer-row"><button class="btn btn-primary" id="btnTextGen" style="flex:1" data-icon="gen">生成文本</button></div>
-          <div class="writer-result" id="textResult">在「设置」中配置文本 API 后即可使用。</div>
+          <div class="writer-result" id="textResult">在下面写一句话，或点上面的「✦」快捷指令试试。</div>
           <div class="writer-row" style="margin-top:6px"><button class="btn btn-sm btn-ghost" id="btnTextCopy">复制结果</button></div>
           <div class="search-box" data-icon="search" style="margin-top:2px">
             <input id="textHistSearch" type="search" placeholder="搜索生成历史" autocomplete="off">
@@ -497,15 +571,15 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
         <div class="card-head">
           <div class="ttl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            图片设计
+            AI 配图
           </div>
           <div class="act"><button class="btn btn-sm btn-ghost" id="btnImgClear">清空</button></div>
         </div>
         <div class="img-prompt">
-          <input id="imgPrompt" placeholder="描述要生成的图像，例如：扁平风科技海报">
+          <input id="imgPrompt" placeholder="描述一张图，例如：扁平风科技海报">
           <button class="btn btn-primary" id="btnImgGen" data-icon="img">生成</button>
         </div>
-        <div class="img-stage" id="imgStage">在「设置」中配置图像 API 后即可生成。</div>
+        <div class="img-stage" id="imgStage">描述一张图，我来帮你画。图片生成需要自己的图像 API（设置里填一次即可）。</div>
         <div class="img-grid" id="imgGrid"></div>
       </div>
     </div>
@@ -517,9 +591,12 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
       <div class="card-head">
         <div class="ttl">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          每日任务清单
+          今日清单
         </div>
-        <div class="act"><button class="btn btn-sm btn-ghost" id="btnDailyAdd">+ 添加</button></div>
+        <div class="act">
+          <button class="btn btn-sm btn-ghost" id="btnDailyShare" title="生成分享卡片">分享</button>
+          <button class="btn btn-sm btn-ghost" id="btnDailyAdd">+ 添加</button>
+        </div>
       </div>
       <div class="daily-tabs" id="dailyTabs"></div>
       <div class="daily-stats" id="dailyStats"></div>
@@ -534,7 +611,11 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
       <div class="card-head">
         <div class="ttl">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="8" y2="20"/><line x1="16" y1="4" x2="16" y2="18"/></svg>
-          任务看板
+          项目进度
+        </div>
+        <div class="act" style="display:flex;align-items:center;gap:8px">
+          <span class="ksum" id="kSum"></span>
+          <button class="btn btn-sm btn-ghost" id="btnKanbanToggle">展开</button>
         </div>
       </div>
       <div class="kanban-toolbar">
@@ -557,7 +638,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
       <div class="card-head">
         <div class="ttl">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          日历
+          日程
         </div>
         <div class="act cal-nav">
           <button id="calPrev" aria-label="上一月" title="上一月" data-icon="chevL"></button>
@@ -572,7 +653,7 @@ try{ if(localStorage.getItem('wb_cuckoo_theme')==='"dark"') document.documentEle
       <div class="card-head">
         <div class="ttl">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
-          邮件列表
+          收件箱
         </div>
         <div class="act"><button class="btn btn-sm btn-ghost" id="btnMailRefresh">刷新</button></div>
       </div>
@@ -646,41 +727,13 @@ const ls = {
    - cloud_backup_at:string（上次云备份时间，仅本机记录）
    - seeded:         boolean（是否已初始化种子数据）
 ------------------------------------------------------- */
-/* ---------- Seed example data ---------- */
+/* ---------- 首次打开：不预置任何示例数据，改为让用户选身份 ---------- */
+// 以前这里会灌一批「开发者示例」（接入 API / 联调 / 移动端验收），
+// 对新用户来说像别人的项目，反而不知道从哪开始。改成选身份 → 自动铺一套真实清单。
 function seedIfEmpty(){
   if(ls.get('seeded', false)) return;
-  ls.set('reminders', [
-    {id:rid(), text:'提交本周项目周报', date:shiftDay(-2), done:false},
-    {id:rid(), text:'团队站会 10:00', date:todayStr(), done:false},
-    {id:rid(), text:'Review 新版设计稿', date:shiftDay(1), done:false},
-    {id:rid(), text:'回复客户邮件', date:shiftDay(2), done:false}
-  ]);
-  ls.set('text_history', []);
-  ls.set('image_history', []);
-  ls.set('calendar_events', [
-    {date:fmtDate(new Date()), title:'今日聚焦：完成 Cuckoo 初版'},
-    {date:shiftDay(3), title:'季度规划会'}
-  ]);
-  ls.set('daily_tasks', [
-    {id:rid(), title:'晨会同步进度', date:todayStr(), done:false},
-    {id:rid(), title:'回复设计评审意见', date:todayStr(), done:true},
-    {id:rid(), title:'撰写周报初稿', date:shiftDay(1), done:false},
-    {id:rid(), title:'预约客户演示', date:shiftDay(2), done:false}
-  ]);
-  ls.set('kanban', [
-    {id:rid(), title:'搭建顶栏提醒模块', col:'done'},
-    {id:rid(), title:'接入文本编写 API', col:'doing'},
-    {id:rid(), title:'接入图像设计 API', col:'doing'},
-    {id:rid(), title:'邮件列表联调', col:'todo'},
-    {id:rid(), title:'移动端适配验收', col:'todo'}
-  ]);
-  ls.set('email_cache', [
-    {id:'s1', from:'设计团队', subject:'Cuckoo 视觉规范 v2', date:todayStr()+' 09:12', snippet:'更新了主色板与卡片圆角，请确认后进入开发。', body:'Hi，\n\n附上 Cuckoo 视觉规范 v2：主色调整为飞书蓝 #3370ff，卡片圆角 12px，整体更克制、更贴近飞书的扁平质感。请确认后我们进入开发阶段。\n\n谢谢！'},
-    {id:'s2', from:'产品周报', subject:'本周数据汇总', date:shiftDay(-1)+' 18:40', snippet:'DAU 环比 +12%，新增提醒功能使用率最高。', body:'本周关键数据：\n- DAU 环比 +12%\n- 提醒功能使用率最高（68%）\n- 图像设计模块待联调\n\n下周重点：移动端验收。'},
-    {id:'s3', from:'客户 · 王先生', subject:'合作方案咨询', date:shiftDay(-2)+' 14:05', snippet:'看到你们的工作台产品，想了解企业版报价。', body:'您好，\n\n我们关注到 Cuckoo 工作台，想了解企业版的部署与报价方案，方便的话约个时间沟通。\n\n王', read:true}
-  ]);
-  ls.set('config', {textApi:{url:'',key:'',model:'gpt-4o-mini'}, imageApi:{url:'',key:'',model:'dall-e-3',size:'1024x1024'}, emailApi:{url:'',key:''}});
   ls.set('seeded', true);
+  setTimeout(()=>{ if(!ls.get('persona','')) openPersona(); }, 700);
 }
 
 /* =================================================================== TOP BAR */
@@ -775,7 +828,7 @@ function renderTextHist(){
   const shown = q? h.filter(it=> (it.q||'').toLowerCase().includes(q) || (it.a||'').toLowerCase().includes(q)) : h;
   $('#textHist').innerHTML = shown.length? shown.slice().reverse().map(it=>
     `<div class="hist-item" data-id="${it.id}" style="cursor:pointer"><div class="h-q">${esc(it.q)}</div><div class="h-a">${esc(it.a)}</div></div>`
-  ).join('') : (q? '<div class="kempty">没有匹配的记录</div>' : '<div class="kempty">暂无生成记录</div>');
+  ).join('') : (q? '<div class="kempty">没有匹配的记录</div>' : '<div class="kempty">还没有内容，点上面的「✦」快捷指令试试</div>');
   $('#textHist').querySelectorAll('.hist-item').forEach(el=>el.onclick=()=>{
     const it=h.find(x=>x.id===el.dataset.id); if(!it)return;
     $('#textInput').value=it.q; $('#textInput').focus(); toast('已回填到输入框');
@@ -790,7 +843,14 @@ async function genText(overrideQ){
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> 生成中';
   let ans='';
   try{
-    if(!cfg.url || !cfg.key){ out.textContent='未配置文本 API：请在「设置」中填写接口地址与密钥。'; toast('请先在「设置」中配置文本 API'); throw new Error('__demo__'); }
+    if(!cfg.url || !cfg.key){
+      // 没有自己的 API：走平台免密钥试用（每日免费额度），用户不用配置任何东西
+      ans = await genTextTrial(q, out);
+      aiUse('text');
+      const h0 = ls.get('text_history',[]); h0.push({id:rid(), q, a:ans, t:todayStr()}); ls.set('text_history',h0.slice(-LIMITS.textMax));
+      renderTextHist();
+      return;
+    }
     // 流式优先（OpenAI 兼容 SSE）：增量渲染到结果区；代理不支持时自动回退 JSON
     const res = await apiFetch(cfg, {body:{model:cfg.model||'gpt-4o-mini', messages:[{role:'user',content:q}], temperature:0.7, stream:true}, timeout:120000});
     if(!res.ok) throw new Error('HTTP '+res.status);
@@ -826,6 +886,7 @@ async function genText(overrideQ){
     }
     const h = ls.get('text_history',[]); h.push({id:rid(), q, a:ans, t:todayStr()}); ls.set('text_history',h.slice(-LIMITS.textMax));
     renderTextHist();
+    aiUse('text'); // 计量埋点：自己配 API 的调用也计入，后续付费墙有数据可用
   }catch(e){
     if(e.message!=='__demo__'){
       if(ans){ // 流式中途失败：保留已生成部分
@@ -845,7 +906,7 @@ function renderImgGrid(){
   const h = ls.get('image_history', []);
   $('#imgGrid').innerHTML = h.length? h.slice().reverse().map(it=>
     `<img src="${it.url}" alt="${esc(it.prompt)}" data-url="${encodeURIComponent(it.url)}" title="${esc(it.prompt)}" loading="lazy" decoding="async">`
-  ).join('') : '<div class="kempty" style="grid-column:1/-1">暂无生成图片</div>';
+  ).join('') : '<div class="kempty" style="grid-column:1/-1">还没有图片，描述一张试试</div>';
   $('#imgGrid').querySelectorAll('img').forEach(im=>im.onclick=()=>openLightbox(decodeURIComponent(im.getAttribute('data-url'))));
 }
 async function genImage(){
@@ -854,7 +915,10 @@ async function genImage(){
   if(!p){ toast('请输入图像描述'); return; }
   const btn=$('#btnImgGen'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try{
-    if(!cfg.url || !cfg.key){ $('#imgStage').innerHTML='<span class="muted-tip" style="border:none;background:transparent">未配置图像 API。请在「设置」中填写 API 地址与密钥后生成。</span>'; throw new Error('__demo__'); }
+    if(!cfg.url || !cfg.key){
+      $('#imgStage').innerHTML='<span class="muted-tip" style="border:none;background:transparent">画图要用你自己的图像 API（设置里填一次就行，之后都能用）。先用上面的 AI 写作试试？</span>';
+      throw new Error('__demo__');
+    }
     const res = await apiFetch(cfg, {body:{model:cfg.model||'dall-e-3', prompt:p, n:1, size:cfg.size||'1024x1024'}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const j = await res.json();
@@ -866,6 +930,7 @@ async function genImage(){
     $('#imgStage').querySelector('img').onclick=()=>openLightbox(url);
     const h = ls.get('image_history',[]); h.push({id:rid(), prompt:p, url, t:todayStr()}); ls.set('image_history',h.slice(-LIMITS.imgMax));
     renderImgGrid();
+    aiUse('image');
   }catch(e){ if(e.message!=='__demo__'){ $('#imgStage').innerHTML='<span class="muted-tip" style="border:none;background:transparent">生成失败：'+esc(apiErrMsg(e))+'</span>'; } }
   finally{ btn.disabled=false; btn.innerHTML=ICON_IMG+'生成'; }
 }
@@ -905,17 +970,17 @@ const TEMPLATES=[
 ];
 function openTemplates(){
   openModal('<h3>场景模板<span class="x">×</span></h3>'
-    +'<div class="hint">一键把一套预置的「每日任务 + 看板 + 提醒」添加到工作台，适合快速开始一个新目标。只做添加，不会覆盖你已有的内容。</div>'
+    +'<div class="hint">一键把一套现成的「清单 + 进度 + 提醒」放进工作台，适合快速开始一个新目标。只做添加，不会覆盖你已有的内容。</div>'
     +'<div class="tpl-grid">'+TEMPLATES.map(t=>
       '<div class="tpl-card"><div class="tp-name">'+esc(t.name)+'</div><div class="tp-desc">'+esc(t.desc)+'</div>'
-      +'<div class="tp-meta">任务 '+t.daily.length+' · 看板 '+t.kanban.length+(t.rems&&t.rems.length?' · 提醒 '+t.rems.length:'')+'</div>'
+      +'<div class="tp-meta">清单 '+t.daily.length+' · 进度 '+t.kanban.length+(t.rems&&t.rems.length?' · 提醒 '+t.rems.length:'')+'</div>'
       +'<button class="btn btn-sm btn-primary" data-tpl="'+t.id+'">使用</button></div>').join('')+'</div>');
   $('#drawer').querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{
     const tpl=TEMPLATES.find(x=>x.id===b.dataset.tpl); if(tpl) applyTemplate(tpl);
   });
 }
 function applyTemplate(tpl){
-  uiConfirm('将「'+tpl.name+'」的预置任务 / 看板 / 提醒添加到工作台？现有内容不受影响。',
+  uiConfirm('把「'+tpl.name+'」的清单 / 进度 / 提醒加进来？现有内容不受影响。',
     ()=>{
       const dt=ls.get('daily_tasks',[]);
       tpl.daily.forEach(d=>dt.push({id:rid(),title:d.t,date:shiftDay(d.off||0),done:false,prio:''}));
@@ -1000,7 +1065,7 @@ function drawShareCard(mode){
   }
   // 底部落款（裂变入口）
   ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='500 26px '+F;
-  ctx.fillText('免费使用 → anliways.com/cuckoo',60,906);
+  ctx.fillText('免费使用 → '+INVITE_URL.replace(/^https?:\/\//,'').replace(/\/\?.*$/,''),60,906);
   return c.toDataURL('image/png');
 }
 function openShareCard(){
@@ -1020,9 +1085,11 @@ function openShareCard(){
   $('#shareDl').onclick=()=>{ const a=document.createElement('a'); a.href=img.src; a.download='cuckoo-'+mode+'-card.png'; a.click(); toast('已开始下载'); };
 }
 /* ---------- 邀请裂变：推荐文案 + 复制 / 系统分享 ---------- */
-const INVITE_URL='https://www.anliways.com/cuckoo/';
+// 唯一对外入口：登录同步 / AI 试用 / 分享回流都指向同一个域名，避免「两个版本」的困惑
+const CANONICAL_URL = 'https://cuckoo-workbench.app.workbuddy.host/?sharecode=D3RDDNFVET';
+const INVITE_URL = CANONICAL_URL;
 function openInvite(){
-  const text='发现一个免费的效率工作台「布谷鸟 Cuckoo」：提醒、任务、看板、日历、邮件、AI 全在一个页面，还能生成打卡分享卡 👇\n'+INVITE_URL;
+  const text='发现一个免费的效率小工具「布谷鸟 Cuckoo」：一句话记事情、每天一张清单、连击打卡，还能让 AI 帮我写东西。打开就能用，不用注册 👇\n'+INVITE_URL;
   openModal('<h3>推荐给朋友<span class="x">×</span></h3>'
     +'<div class="field"><label>推荐文案（可先编辑再复制）</label><textarea id="invText" rows="4">'+esc(text)+'</textarea></div>'
     +'<div class="data-row">'
@@ -1083,7 +1150,7 @@ function renderDaily(){
   const list = ls.get('daily_tasks', []);
   const dsel = dailyDateFor(dailySel);
   const shown = dsel? list.filter(t=>t.date===dsel) : list;
-  if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有任务，点右上角「+ 添加」，或用顶栏「模板」一键开始。</div>'; return; }
+  if(shown.length===0){ $('#dailyScroll').innerHTML='<div class="daily-empty">这一天还没有安排。点右上角「+ 添加」写一件小事，或在右边「记一笔」直接说。</div>'; return; }
   $('#dailyScroll').innerHTML = shown.map(t=>{
     const pr = PRIO[t.prio];
     return `<div class="daily-card ${t.done?'done':''}">
@@ -1128,7 +1195,7 @@ function editDaily(id){
 function addDaily(){
   const def = dailySel==='all'? todayStr() : (dailyDateFor(dailySel)||todayStr());
   formModal({
-    title:'添加每日任务', saveText:'添加',
+    title:'添加一件事', saveText:'添加',
     fields:[
       {id:'dyTitle', label:'任务内容', placeholder:'例如：完成接口联调'},
       {id:'dyDate', label:'日期', type:'date', value:def},
@@ -1162,6 +1229,13 @@ function ringSVG(pct){
 }
 function renderKanban(){
   const cards = ls.get('kanban', []);
+  // 收起状态下也要有信息：标题右侧一行摘要
+  const ksum=$('#kSum');
+  if(ksum){
+    const doing=cards.filter(c=>c.col==='doing').length;
+    const done=cards.filter(c=>c.col==='done').length;
+    ksum.textContent = cards.length? ('进行中 '+doing+' · 完成 '+done+'/'+cards.length) : '还没有项目';
+  }
   // P2-3：关键词搜索（按标题）
   let view = cards;
   const q = kanbanSearch.trim().toLowerCase();
@@ -1202,7 +1276,7 @@ function renderKanban(){
         const dueOverdue = c.due && c.due<todayStr() && c.col!=='done';
         const dueChip = c.due? `<span class="kdue ${dueOverdue?'overdue':''}" title="${dueOverdue?'已逾期':'截止'} ${c.due}">${dueOverdue?'逾期 ':''}${fmtMD(c.due)}</span>`:'';
         return `<div class="kcard" draggable="true" data-id="${c.id}"><span class="kt">${esc(c.title)}</span>${dueChip}<span class="kact">${u}${d}${editBtn}${delBtn}</span></div>`;
-      }).join(''):'<div class="kempty">暂无</div>'}</div>
+      }).join(''):'<div class="kempty">这一列还空着，点「＋」加一个</div>'}</div>
     </div>`;
   }).join('');
   $('#kanban').querySelectorAll('.kact button[data-dir]').forEach(b=>b.onclick=()=>moveCard(b.dataset.id,b.dataset.dir));
@@ -1327,7 +1401,7 @@ async function renderMail(force){
       <div class="m-sub">${esc(m.subject)}</div>
       <div class="m-snip">${esc(m.snippet)}</div>
       <div class="mail-actions"><button class="ic-btn danger" data-del="${m.id}" title="删除">${ICON_TRASH}</button></div>
-    </div>`).join('') : (list.length? '<div class="mail-empty">未找到匹配的邮件</div>' : '<div class="kempty">暂无邮件</div>');
+    </div>`).join('') : (list.length? '<div class="mail-empty">没有找到匹配的邮件</div>' : '<div class="kempty">还没有邮件，去「设置」绑定邮箱就会自动收进来</div>');
   $('#mailList').querySelectorAll('.mail-item').forEach(it=>it.onclick=()=>{
     const m=list.find(x=>x.id===it.dataset.id); if(!m)return;
     const wasUnread=!m.read;
@@ -1395,7 +1469,7 @@ function openReminderManager(){
   };
   const repeatOptions = Object.keys(REPEATS).map(k=>'<option value="'+k+'">'+REPEATS[k]+'</option>').join('');
   openModal(`<h3>提醒管理<span class="x">×</span></h3>
-    <div id="remList">${list.length? list.map(item).join('') : '<div class="kempty">暂无提醒</div>'}</div>
+    <div id="remList">${list.length? list.map(item).join('') : '<div class="kempty">还没有提醒，点下面「添加提醒」写一条</div>'}</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
     <div class="field"><label>新增提醒内容</label><input id="rText" placeholder="例如：提交月报"></div>
     <div style="display:flex;gap:8px">
@@ -1560,17 +1634,25 @@ function delReminder(id){
 /* =================================================================== Settings */
 function openSettings(){
   const cfg = ls.get('config',{});
-  openModal(`<h3>API 设置<span class="x">×</span></h3>
-    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>纯文本编写 API</div>
+  const q = aiQuota();
+  openModal(`<h3>设置<span class="x">×</span></h3>
+    <div class="sec"><div class="sec-t">账号与同步</div>
+      <button class="btn" style="width:100%" onclick="closeModal();setTimeout(openAccount,80)">${ onCloudApp()? (cloudSession? '已登录 · 管理账号与云备份' : '登录 / 云备份（换设备不丢数据）') : '查看完整版（登录同步）' }</button>
+      <div class="hint">不登录也能用，数据存在本机；登录后换设备可以恢复。</div></div>
+    <div class="sec"><div class="sec-t">AI 额度与会员</div>
+      <button class="btn" style="width:100%" onclick="openPlans()">今日已用 ${q.used} / ${q.limit} 次 · 查看会员</button>
+      <div class="hint">不填 API 也能直接用 AI：每天有免费额度，用完次日 0 点恢复。</div></div>
+    <div class="hint" style="margin-top:4px">下面三项是「进阶配置」，不填也能正常用。</div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>AI 写作（用自己的 API，可选）</div>
       <div class="field"><label>接口地址</label><input id="c_text_url" value="${esc(cfg.textApi?.url||'')}" placeholder="https://api.example.com/v1/chat/completions"></div>
       <div class="field"><label>API Key</label><input id="c_text_key" value="${esc(cfg.textApi?.key||'')}"></div>
       <div class="field"><label>模型名</label><input id="c_text_model" value="${esc(cfg.textApi?.model||'gpt-4o-mini')}"></div></div>
-    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>图片设计 API</div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>AI 配图（用自己的 API，可选）</div>
       <div class="field"><label>接口地址</label><input id="c_img_url" value="${esc(cfg.imageApi?.url||'')}" placeholder="https://api.example.com/v1/images/generations"></div>
       <div class="field"><label>API Key</label><input id="c_img_key" value="${esc(cfg.imageApi?.key||'')}"></div>
       <div class="field"><label>模型名</label><input id="c_img_model" value="${esc(cfg.imageApi?.model||'dall-e-3')}"></div>
       <div class="field"><label>尺寸</label><input id="c_img_size" value="${esc(cfg.imageApi?.size||'1024x1024')}"></div></div>
-    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>邮件列表 API</div>
+    <div class="sec"><div class="sec-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>收件箱（邮件接入）</div>
       <div class="field"><label>接口地址（GET，返回邮件数组）</label><input id="c_mail_url" value="${esc(cfg.emailApi?.url||'')}" placeholder="https://api.example.com/mails"></div>
       <div class="field"><label>API Key（可选）</label><input id="c_mail_key" value="${esc(cfg.emailApi?.key||'')}"></div>
       <div class="hint">接口需返回 JSON 数组，字段含 from / subject / date / snippet / body（程序自动兼容）。</div></div>
@@ -1578,8 +1660,8 @@ function openSettings(){
       <div class="field"><label>已绑定账户</label><button class="btn" style="width:100%" onclick="openMailAccounts()">管理邮箱账户<span class="ac-count" id="maCount"></span></button></div>
       <div class="hint">支持绑定 QQ / 163 / Outlook / Gmail / iCloud 邮箱，采集邮件到「邮件列表」。添加/授权/解绑在管理面板中完成。</div></div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-    <div class="field"><label>桌面通知</label><button class="btn" onclick="enableNotify()">开启今日提醒推送</button>
-      <div class="hint">开启后，每天首次打开工作台时通过系统通知推送今日与逾期的未完成提醒。以 file:// 方式打开时部分浏览器可能不支持。</div></div>
+    <div class="field"><label>桌面通知</label><button class="btn" onclick="enableNotify()">开启系统通知</button>
+      <div class="hint">开启后，到点的提醒会同时用系统通知弹出（页面没在前台时也能看到）。</div></div>
     <button class="btn btn-primary" style="width:100%" onclick="saveConfig()">保存配置</button>
     <div class="hint">配置仅保存在本机浏览器（localStorage），不会上传到任何服务器。</div>`);
   const maCount = $('#maCount');
@@ -1600,7 +1682,7 @@ function openMailAccounts(){
     </div>`;
   }).join('') : '<div class="kempty">尚未绑定邮箱账户</div>';
   openModal(`<h3>邮箱采集<span class="x">×</span></h3>
-    <div class="hint">浏览器无法直连 IMAP：采集通过「邮件列表 API」代理完成，请求头 X-Mail-Account 携带账户信息（服务商 / 邮箱 / IMAP 主机 / 授权凭证），由代理登录对应邮箱拉取邮件。</div>
+    <div class="hint">绑定后点「采集」就能把邮件拉进来。浏览器不能直连邮箱，需要在「设置 → 收件箱」里填一个中转接口（进阶用法；不会配置也可以先用其他功能）。</div>
     <div class="hint" style="color:var(--warn)">安全提示：授权凭证以明文保存在本机浏览器（localStorage），请勿在共用电脑上绑定账户；导出备份 JSON 时会包含凭证，请妥善保管备份文件。</div>
     <div style="margin:10px 0;display:flex;flex-direction:column;gap:6px">${rows}</div>
     <div class="data-row"><button class="btn btn-primary" style="flex:1" data-add>+ 添加邮箱账户</button><button class="btn" style="flex:1" data-collect-all>采集全部账户</button></div>`);
@@ -1705,17 +1787,25 @@ function fireDueNotification(due){
   if('Notification' in window && Notification.permission==='granted'){
     try{ new Notification('Cuckoo · 提醒时间到', {tag:'cuckoo-due-'+Date.now(), body}); }catch(e){}
   }
+  // 不依赖系统通知权限：页面内浮层 + 标题闪动，保证「时间到」一定被看见
+  showDueBanner(due);
+  startTitleFlash();
   toast('【提醒时间到】'+due[0].text+(due.length>1?'（等 '+due.length+' 条）':''), 6000);
 }
 function startDueTicker(){
   // 恢复当天已推送记录，避免刷新后重复提醒
   ls.get('notified_due', []).forEach(k=>{ if(k.startsWith(todayStr()+' ')) dueNotified.add(k); });
   const tick = ()=>{
-    const today=todayStr(), hhmm=remHHMM();
+    const today=todayStr(), hhmm=remHHMM(), now=Date.now();
+    // 「+10 分钟」的稍后提醒：到点前跳过，到点后自动恢复推送
+    const sn=ls.get('snooze_due',{});
+    let changed=false;
+    Object.keys(sn).forEach(k=>{ if(!(sn[k]>now)){ delete sn[k]; changed=true; } });
+    if(changed) ls.set('snooze_due', sn);
     const due = ls.get('reminders',[]).filter(r=>{
       const ed = effRemDate(r, today);
       const key = r.id+'@'+today+' '+r.time;
-      return !r.done && r.time && TIME_RE.test(r.time) && ed===today && r.time<=hhmm && !dueNotified.has(key);
+      return !r.done && r.time && TIME_RE.test(r.time) && ed===today && r.time<=hhmm && !dueNotified.has(key) && !sn[r.id];
     });
     if(!due.length) return;
     due.forEach(r=>dueNotified.add(r.id+'@'+today+' '+r.time));
@@ -1886,22 +1976,307 @@ async function handleOAuthCallback(){
 }
 document.addEventListener('DOMContentLoaded', ()=>{ initCloud(); handleOAuthCallback(); });
 
+/* =================================================================== ToC 体验层
+   AI 免密钥试用（登录云服务后由平台代付，用户不用填 API）、每日额度计量、
+   今日焦点 / 记一笔、到点浮层、连击外显、会员页、首启身份选择。
+   ------------------------------------------------------------------ */
+// 免费额度：未登录 5 次/天，登录后 20 次/天（计数存在 ai_usage，按自然日重置）
+const AI_LIMIT = { guest:5, user:20 };
+const AI_SYSTEM = '你是布谷鸟工作台的写作与整理助手。直接给结果，不要寒暄和解释；用简体中文；不编造事实；格式清爽易读。';
+
+function aiUsage(){
+  const u = ls.get('ai_usage', {});
+  return u.date===todayStr()? {date:u.date, text:u.text||0, image:u.image||0} : {date:todayStr(), text:0, image:0};
+}
+function aiQuota(){
+  const u = aiUsage();
+  const limit = cloudSession? AI_LIMIT.user : AI_LIMIT.guest;
+  return {limit, used:u.text, left:Math.max(0, limit-u.text)};
+}
+function aiUse(kind){
+  const u = aiUsage(); const k = kind||'text';
+  u[k] = (u[k]||0)+1; u.date = todayStr();
+  ls.set('ai_usage', u);
+  renderFocus();
+}
+// 模型列表由平台下发，不硬编码任何模型 id
+let trialModel = null;
+async function pickTrialModel(){
+  if(trialModel) return trialModel;
+  const list = await cloud.llm.models.list();
+  const usable = (list||[]).filter(m=>m.disabled!==true);
+  trialModel = usable[0] || null;
+  return trialModel;
+}
+// 试用额度用尽 / 域名不支持时，在结果区给一句人话 + 一个出口
+function trialBlockedHTML(msg, showPlans){
+  return '<span class="muted-tip" style="border:none;background:transparent;padding:0">'+esc(msg)+'</span>'
+    + (showPlans? ' <button class="btn btn-sm" onclick="openPlans(\'quota\')">查看额度</button>' : '');
+}
+async function genTextTrial(q, out){
+  const quota = aiQuota();
+  if(quota.left<=0){ out.innerHTML = trialBlockedHTML('今天的免费 AI 额度用完了（'+quota.limit+' 次/天），明天 0 点恢复。', true); openPlans('quota'); throw new Error('__demo__'); }
+  initCloud();
+  if(!cloud || !cloud.llm){ out.innerHTML='<span class="muted-tip" style="border:none;background:transparent;padding:0">AI 试用还没准备好（网络慢或浏览器拦截了脚本），刷新一下再试。</span>'; throw new Error('__demo__'); }
+  let model=null;
+  try{ model = await pickTrialModel(); }
+  catch(e){
+    const code = (e && e.error && e.error.code) || '';
+    if(code.indexOf('auth_')===0){ out.innerHTML = trialBlockedHTML('这个网址还没拿到 AI 试用授权（或登录已过期）。到完整版登录后再试，或在设置里填自己的 API。')+' <button class="btn btn-sm" onclick="location.href=\''+CANONICAL_URL+'\'">去完整版</button>'; }
+    else out.innerHTML = trialBlockedHTML('模型服务暂时连不上，稍后再试，或在设置里填自己的 API。');
+    throw new Error('__demo__');
+  }
+  if(!model){ out.innerHTML='<span class="muted-tip" style="border:none;background:transparent;padding:0">当前没有可用的试用模型，可在「设置」里填自己的 API。</span>'; throw new Error('__demo__'); }
+  out.textContent='';
+  let ans='';
+  try{
+    for await (const chunk of cloud.llm.chat.completions.create({
+      model: model.id,
+      messages: [{role:'system', content:AI_SYSTEM}, {role:'user', content:q}],
+      stream: true,
+      stream_options: {include_usage:true},
+      temperature: 0.7
+    })){
+      const d = chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content;
+      if(d){ ans+=d; out.textContent=ans; }
+    }
+  }catch(e){
+    const code = (e && e.error && e.error.code) || '';
+    if(ans){ out.textContent = ans+'\n\n[响应中断]'; toast('生成中断，已保留部分结果'); return ans; }
+    if(code.indexOf('auth_')===0){ out.innerHTML = trialBlockedHTML('这个网址还没拿到 AI 试用授权（或登录已过期）。到完整版登录后再试，或在设置里填自己的 API。')+' <button class="btn btn-sm" onclick="location.href=\''+CANONICAL_URL+'\'">去完整版</button>'; }
+    else if(code.indexOf('quota_')===0){ out.innerHTML = trialBlockedHTML('试用额度刚好用完了，明天再来，或在设置里填自己的 API。', true); }
+    else if(code.indexOf('gateway_')===0 || code.indexOf('model_')===0){ out.innerHTML = trialBlockedHTML('模型服务打了个盹，稍等几秒再点一次。'); }
+    else { out.innerHTML = trialBlockedHTML('没生成成功：'+((e&&e.error&&e.error.message)||(e&&e.message)||'网络异常')+'。可再试一次，或在设置里填自己的 API。'); }
+    throw new Error('__demo__');
+  }
+  if(!ans){ out.innerHTML = trialBlockedHTML('这次没生成内容，换个说法再试试。'); throw new Error('__demo__'); }
+  return ans;
+}
+
+/* ---------- 会员与额度（暂不收费，只把额度与权益说清楚） ---------- */
+function openPlans(reason){
+  const q=aiQuota(); const pct=Math.min(100, Math.round(q.used/Math.max(1,q.limit)*100));
+  const logged=!!cloudSession;
+  const tiers=[
+    {name:'免费', price:'¥0', sub:'现在就能用', rec:false,
+      li:['每天 '+AI_LIMIT.guest+' 次 AI（登录后 '+AI_LIMIT.user+' 次）','数据存本机，可导出备份','5 套场景模板']},
+    {name:'会员', price:'¥9.9', sub:'/ 月 · 年付 ¥68', rec:true,
+      li:['AI 不限次数','云端备份，换设备不丢','全部模板与分享样式']},
+    {name:'团队', price:'—', sub:'暂不开放', rec:false,
+      li:['多人协作与权限','操作审计','专属部署']}
+  ];
+  openModal('<h3>会员与额度<span class="x">×</span></h3>'
+    +'<div class="hint">'+(reason==='quota'?'今天的免费额度用完了，明天 0 点自动恢复；也可以先了解会员。':'AI 每天有免费额度，日常记录、写文案基本够用。')+'</div>'
+    +'<div class="sec"><div class="sec-t">今日 AI 额度</div>'
+      +'<div class="usage-bar"><i style="width:'+pct+'%"></i></div>'
+      +'<div class="hint">已用 '+q.used+' / '+q.limit+' 次 · '+(logged?'已登录':'未登录（登录后 20 次/天）')+'</div></div>'
+    +'<div class="plan-grid">'+tiers.map(t=>
+        '<div class="plan-card'+(t.rec?' rec':'')+'"><div class="plan-name">'+t.name+'</div>'
+        +'<div class="plan-price">'+t.price+'<small> '+t.sub+'</small></div>'
+        +t.li.map(x=>'<div class="plan-li">· '+x+'</div>').join('')+'</div>').join('')+'</div>'
+    +'<div class="data-row"><button class="btn" style="flex:1" id="planInvite">邀请朋友</button>'
+      +'<button class="btn btn-primary" style="flex:1" id="planWait">预约会员</button></div>'
+    +'<div class="hint">会员功能还在做，暂不收费；预约后开放会在应用内提醒你。'
+      +(onCloudApp()?'':'<br>登录同步与 AI 试用在完整版提供：<a href="'+CANONICAL_URL+'" target="_blank" rel="noopener">打开完整版</a>')+'</div>');
+  $('#planInvite').onclick=()=>{ closeModal(); setTimeout(openInvite, 80); };
+  $('#planWait').onclick=()=>{
+    const n=(ls.get('plan_wait_count',0)||0)+1;
+    ls.set('plan_wait', todayStr()); ls.set('plan_wait_count', n);
+    toast('已记下，开放时第一时间通知你');
+  };
+}
+
+/* ---------- 首启身份选择：不再灌开发者示例，让用户选「我是谁」 ---------- */
+const PERSONAS=[
+  {id:'side', emoji:'💼', name:'副业经营', desc:'客户、内容、流水，一个人也要有节奏'},
+  {id:'creator', emoji:'✍️', name:'内容创作', desc:'选题、初稿、发布，稳定更新'},
+  {id:'exam', emoji:'📚', name:'备考学习', desc:'计划、刷题、复盘，按节奏推进'},
+  {id:'job', emoji:'🎯', name:'求职冲刺', desc:'简历、投递、面试，不漏机会'},
+  {id:'fit', emoji:'🏃', name:'健身计划', desc:'训练、饮食、作息，把运动变习惯'},
+  {id:'none', emoji:'🌱', name:'先自己用', desc:'空白开始，想到什么记什么'}
+];
+function openPersona(){
+  openModal('<h3>你主要用 Cuckoo 做什么？<span class="x">×</span></h3>'
+    +'<div class="hint">选一个，我把它对应的清单、进度和提醒准备好；之后随时能换。</div>'
+    +'<div class="persona-grid">'+PERSONAS.map(p=>
+        '<button class="persona" data-persona="'+p.id+'"><span class="p-emoji">'+p.emoji+'</span>'
+        +'<span><span class="p-name">'+p.name+'</span><div class="p-desc">'+esc(p.desc)+'</div></span></button>').join('')+'</div>'
+    +'<button class="btn btn-sm btn-ghost" style="width:100%" data-skip>先随便看看</button>');
+  $('#drawer').querySelectorAll('[data-persona]').forEach(b=>b.onclick=()=>applyPersona(b.dataset.persona));
+  $('#drawer [data-skip]').onclick=()=>{ ls.set('persona',''); closeModal(); };
+}
+function applyPersona(id){
+  ls.set('persona', id||'');
+  const tpl = TEMPLATES.find(t=>t.id===id);
+  if(tpl){
+    const dt=ls.get('daily_tasks',[]);
+    tpl.daily.forEach(d=>dt.push({id:rid(),title:d.t,date:shiftDay(d.off||0),done:false,prio:''}));
+    ls.set('daily_tasks',dt);
+    const kb=ls.get('kanban',[]);
+    tpl.kanban.forEach(k=>kb.push({id:rid(),title:k.t,col:k.c,due:''}));
+    ls.set('kanban',kb);
+    if(tpl.rems&&tpl.rems.length){
+      const rm=ls.get('reminders',[]);
+      tpl.rems.forEach(r=>rm.push({id:rid(),text:r.text,date:shiftDay(r.off||0),time:r.time||'',repeat:r.repeat||'none',done:false}));
+      ls.set('reminders',rm);
+    }
+  }
+  closeModal();
+  renderDaily(); renderKanban(); renderReminders(); renderCalendar(); renderFocus();
+  toast(tpl? '已准备好「'+tpl.name+'」的一天' : '好，想到什么就记什么');
+}
+
+/* ---------- 记一笔：一句话 → 提醒（自然语言识别日期/时间/重复） ---------- */
+function quickAdd(){
+  const el=$('#quickAdd'); if(!el) return;
+  const raw=el.value.trim();
+  if(!raw){ toast('写点什么再记下'); el.focus(); return; }
+  const p=parseNL(raw)||{};
+  const title=(p.title||raw).trim();
+  const date=p.date||todayStr(), time=p.time||'', repeat=p.repeat||'none';
+  const item={id:rid(), text:title, date, time, repeat, done:false};
+  const list=ls.get('reminders',[]); list.push(item); ls.set('reminders',list);
+  renderReminders(); renderFocus();
+  el.value=''; ls.del('quick_draft');
+  const bits=[relDay(date)]; if(time) bits.push(time); if(repeat!=='none') bits.push(REPEATS[repeat]);
+  showToast({msg:'已记下 · '+bits.join(' ')+' · '+title, action:'撤销', ms:4500, onAction:()=>{
+    const arr=ls.get('reminders',[]); const i=arr.findIndex(x=>x.id===item.id);
+    if(i>=0){ arr.splice(i,1); ls.set('reminders',arr); renderReminders(); renderFocus(); toast('已撤销'); }
+  }});
+}
+
+/* ---------- 今日焦点：一眼看到今天，点一下就到对应位置 ---------- */
+function renderFocus(){
+  const meta=$('#fbMeta'), title=$('#fbTitle');
+  if(!meta) return;
+  const today=todayStr(), hhmm=remHHMM();
+  const tasks=ls.get('daily_tasks',[]).filter(t=>t.date===today);
+  const done=tasks.filter(t=>t.done).length;
+  const open=ls.get('reminders',[]).filter(r=>!r.done);
+  const overdue=open.filter(r=>remOverdue(r,today,hhmm)).length;
+  const next=open.map(r=>({r, ed:effRemDate(r,today)||''}))
+    .filter(x=>x.ed && x.ed>=today)
+    .sort((a,b)=>((a.ed+' '+(a.r.time||'23:59')).localeCompare(b.ed+' '+(b.r.time||'23:59'))))[0];
+  const st=weeklyStats();
+  const chips=[];
+  if(tasks.length) chips.push('<span class="fb-chip" data-goto="daily">今天 '+done+'/'+tasks.length+' 件</span>');
+  if(next){
+    const when = next.ed===today? (next.r.time||'全天') : relDay(next.ed)+(next.r.time? ' '+next.r.time:'');
+    chips.push('<span class="fb-chip" data-goto="daily">下一条 + '+esc(when)+' · '+esc(truncStr(next.r.text,10))+'</span>');
+  }
+  if(overdue) chips.push('<span class="fb-chip hot" data-goto="rem">逾期 '+overdue+'</span>');
+  if(st.streak>0) chips.push('<span class="fb-chip fire" data-goto="daily">🔥 连续 '+st.streak+' 天</span>');
+  if(!chips.length) chips.push('<span class="fb-chip plain">还没有安排，右边记一笔就行</span>');
+  meta.innerHTML=chips.join('');
+  if(title) title.textContent = (tasks.length && done===tasks.length)? '今天清空了' : '今天';
+  meta.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{
+    if(el.dataset.goto==='rem') openReminderManager();
+    else $('#dailyCard').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+}
+
+/* ---------- 项目进度：默认收起，保留一行摘要 ---------- */
+function setKanbanOpen(open){
+  const card=$('#kanbanCard'); if(!card) return;
+  card.classList.toggle('collapsed', !open);
+  const b=$('#btnKanbanToggle'); if(b) b.textContent = open? '收起' : '展开';
+  ls.set('kanban_open', !!open);
+}
+
+/* ---------- 完成庆祝：把连击从「埋在卡片里」变成「看得见」 ---------- */
+function celebrate(big, sub){
+  const old=$('#celebrate'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='celebrate'; el.id='celebrate';
+  el.innerHTML='<div class="cel-big">'+esc(big)+'</div>'+(sub?'<div class="cel-sub">'+esc(sub)+'</div>':'');
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s,transform .3s'; el.style.opacity='0'; el.style.transform='translate(-50%,-10px)'; }, 1700);
+  setTimeout(()=>el.remove(), 2100);
+}
+// 每周末（周日/周一）轻提示一次：这周完成了多少，要不要生成周报卡
+function maybeWeeklyPrompt(){
+  const st=weeklyStats(); if(!st.weekTotal) return;
+  const wk=st.days[0]; if(ls.get('weekly_prompt','')===wk) return;
+  const dow=new Date().getDay(); if(dow!==0 && dow!==1) return;
+  ls.set('weekly_prompt', wk);
+  setTimeout(()=>{
+    if($('#overlay').classList.contains('show')) return;
+    openModal('<h3>这周你完成了 '+st.weekTotal+' 件事<span class="x">×</span></h3>'
+      +'<div class="hint">'+(st.streak>1? '已经连续打卡 '+st.streak+' 天。':'')+'生成一张周报卡留个记录，或者直接继续。</div>'
+      +'<div class="data-row"><button class="btn" style="flex:1" data-later>这就够了</button>'
+      +'<button class="btn btn-primary" style="flex:1" data-share>生成周报卡</button></div>');
+    $('#drawer [data-later]').onclick=closeModal;
+    $('#drawer [data-share]').onclick=()=>{ closeModal(); setTimeout(openShareCard, 80); };
+  }, 1400);
+}
+
+/* ---------- 到点浮层 + 标题闪动 + 稍后提醒（不依赖通知权限） ---------- */
+let _titleTimer=null, _baseTitle=null;
+function startTitleFlash(){
+  if(!_baseTitle) _baseTitle=document.title;
+  const base=_baseTitle;
+  if(_titleTimer) clearInterval(_titleTimer);
+  let on=false, ticks=0;
+  const stop=()=>{ if(_titleTimer){ clearInterval(_titleTimer); _titleTimer=null; } document.title=base; };
+  _titleTimer=setInterval(()=>{
+    on=!on; document.title = on? '⏰ 时间到 · '+base : base;
+    if(++ticks>60) stop();
+  }, 1000);
+  document.addEventListener('visibilitychange', function h(){ if(!document.hidden){ stop(); document.removeEventListener('visibilitychange', h); } });
+}
+function snoozeReminder(id){
+  const m=ls.get('snooze_due',{}); m[id]=Date.now()+10*60*1000; ls.set('snooze_due', m);
+  [...dueNotified].forEach(k=>{ if(k.indexOf(id+'@')===0) dueNotified.delete(k); });
+  ls.set('notified_due', [...dueNotified].slice(-200));
+  toast('10 分钟后再提醒你');
+}
+let _dueTimer=null;
+function showDueBanner(due){
+  const old=$('#duePop'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='due-pop'; el.id='duePop';
+  el.innerHTML='<div class="dp-head"><span class="dp-bell">⏰</span>提醒时间到</div>'
+    +due.slice(0,3).map(r=>'<div class="dp-item"><div class="dpi-t">'+esc(r.text)+'</div>'
+      +'<div class="dpi-m">'+esc((r.time||'')+(r.repeat&&r.repeat!=='none'? ' · '+REPEATS[r.repeat]:''))+'</div>'
+      +'<div class="dp-act"><button class="btn btn-sm btn-primary" data-done="'+r.id+'">完成</button>'
+      +'<button class="btn btn-sm" data-snooze="'+r.id+'">+10 分钟</button></div></div>').join('')
+    +'<div class="dp-foot"><button class="btn btn-sm btn-ghost" data-close>知道了</button>'
+    +((('Notification' in window) && Notification.permission!=='granted')? '<button class="btn btn-sm btn-ghost" data-notify>开启系统通知</button>':'')+'</div>';
+  document.body.appendChild(el);
+  el.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{ completeReminder(b.dataset.done); const it=b.closest('.dp-item'); if(it) it.remove(); if(!el.querySelector('.dp-item')) el.remove(); });
+  el.querySelectorAll('[data-snooze]').forEach(b=>b.onclick=()=>{ snoozeReminder(b.dataset.snooze); const it=b.closest('.dp-item'); if(it) it.remove(); if(!el.querySelector('.dp-item')) el.remove(); });
+  const cb=el.querySelector('[data-close]'); if(cb) cb.onclick=()=>el.remove();
+  const nb=el.querySelector('[data-notify]'); if(nb) nb.onclick=enableNotify;
+  clearTimeout(_dueTimer); _dueTimer=setTimeout(()=>el.remove(), 300000);
+}
+
 /* =================================================================== Data */
 function openData(){
-  openModal(`<h3>数据备份与恢复<span class="x">×</span></h3>
-    <div class="data-row">
-      <button class="btn btn-primary" onclick="exportJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>导出 JSON</button>
-      <button class="btn" onclick="importJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>导入恢复</button>
+  openModal(`<h3>备份与换机<span class="x">×</span></h3>
+    <div class="hint">数据默认只存在这台设备的浏览器里。想换设备不丢，先登录再云备份；不登录就定期导出一份文件。</div>
+    <div class="sec"><div class="sec-t">换设备 / 云端</div>
+      <button class="btn btn-primary" style="width:100%" onclick="closeModal();setTimeout(openAccount,80)">登录并云备份</button>
+      <div class="hint" id="cloudState"></div></div>
+    <div class="sec"><div class="sec-t">本地备份文件</div>
+      <div class="data-row">
+        <button class="btn" onclick="exportJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>导出文件</button>
+        <button class="btn" onclick="importJSON()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>从文件恢复</button>
+      </div>
+      <div class="hint">导入会覆盖同名的现有数据。建议每月导一次。</div>
     </div>
     <input type="file" id="importFile" accept="application/json" style="display:none" onchange="doImport(event)">
-    <div class="hint">导出会把全部本地数据打包成一个 JSON 文件；导入会覆盖当前同名数据。建议定期备份。</div>
     <div class="hint" id="exportCredWarn" style="display:none;color:var(--warn)">注意：已绑定的邮箱账户授权凭证会包含在导出文件中，请妥善保管。</div>
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-    <button class="btn" style="width:100%" onclick="openShareCard()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>生成分享卡片（周报 / 打卡成就）</button>
+    <button class="btn" style="width:100%" onclick="openPlans()">会员与 AI 额度</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="openShareCard()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>生成分享卡片（周报 / 打卡成就）</button>
     <button class="btn" style="width:100%;margin-top:8px" onclick="openInvite()">推荐给朋友</button>
-    <button class="btn" style="width:100%;color:var(--warn);margin-top:8px" onclick="resetExample()">恢复预置数据</button>
+    <button class="btn" style="width:100%;color:var(--warn);margin-top:8px" onclick="resetExample()">重新开始（重选使用场景）</button>
     <button class="btn" style="width:100%;color:var(--danger);margin-top:8px" onclick="clearAll()">清空全部数据</button>`);
   if($('#exportCredWarn')) $('#exportCredWarn').style.display = ls.get('mail_accounts',[]).length? 'block':'none';
+  const cs=$('#cloudState');
+  if(cs){
+    if(!onCloudApp()) cs.innerHTML='当前网址不支持登录同步，请到<a href="'+CANONICAL_URL+'" target="_blank" rel="noopener">完整版</a>登录。';
+    else if(cloudSession) cs.textContent='已登录，可以一键备份到云端。';
+    else cs.textContent='未登录。登录后换手机、换电脑都能恢复。';
+  }
 }
 function exportJSON(){
   const data={};
@@ -1938,10 +2313,10 @@ function clearAll(){
   }, {title:'清空全部数据', okText:'清空'});
 }
 function resetExample(){
-  uiConfirm('将用预置数据覆盖当前内容，确定吗？', ()=>{
+  uiConfirm('清空当前内容，重新选一个使用场景开始？建议先导出备份。', ()=>{
     for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k&&k.startsWith(PREFIX)) localStorage.removeItem(k); }
-    ls.set('seeded',false); seedIfEmpty(); location.reload();
-  }, {title:'恢复预置数据', okText:'覆盖'});
+    location.reload();
+  }, {title:'重新开始', okText:'清空并重选'});
 }
 
 /* ---------- Backup hint ---------- */
@@ -2025,8 +2400,18 @@ function formModal(opts){
 function toggleDone(listKey, id, rerender){
   const list=ls.get(listKey,[]);
   const it=list.find(x=>x.id===id);
+  const wasDone = it? !!it.done : false;
   if(it){ it.done=!it.done; ls.set(listKey,list); }
   rerender();
+  renderFocus();
+  // 每日任务：完成时给一次可见的正反馈（第一次完成 → 连击天数；每 5 件 → 小鼓励）
+  if(listKey==='daily_tasks' && it && it.done && !wasDone){
+    const today=todayStr();
+    const doneToday=ls.get('daily_tasks',[]).filter(x=>x.done && x.date===today).length;
+    const st=weeklyStats();
+    if(doneToday===1) setTimeout(()=>celebrate('🔥 连续 '+Math.max(1,st.streak)+' 天', '今天的第一件事，完成了'), 260);
+    else if(doneToday>1 && doneToday%5===0) setTimeout(()=>celebrate('已完成 '+doneToday+' 件', '今天状态不错，继续保持'), 260);
+  }
 }
 function copyText(t){ if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(t).then(()=>toast('已复制')).catch(()=>fallbackCopy(t)); } else fallbackCopy(t); }
 function fallbackCopy(t){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('已复制'); }catch(e){ toast('复制失败'); } ta.remove(); }
@@ -2075,10 +2460,18 @@ applyTheme();
 initAIChips();
 $('#btnTheme').onclick=toggleTheme;
 $('#btnTemplates').onclick=openTemplates;
-$('#btnAccount').onclick=openAccount;
+if($('#btnAccount')) $('#btnAccount').onclick=openAccount; // 入口已并入「设置」，保留兼容
 $('#btnAddReminder').onclick=openReminderManager;
 $('#btnData').onclick=openData;
 $('#btnSettings').onclick=openSettings;
+// 记一笔：回车即记下（自然语言识别日期/时间）
+$('#btnQuickAdd').onclick=quickAdd;
+$('#quickAdd').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); quickAdd(); } });
+$('#quickAdd').addEventListener('input', e=>{ ls.set('quick_draft', e.target.value.slice(0,200)); });
+$('#quickAdd').value = ls.get('quick_draft','');
+// 今日清单：分享入口 + 项目进度折叠
+$('#btnDailyShare').onclick=openShareCard;
+$('#btnKanbanToggle').onclick=()=>setKanbanOpen($('#kanbanCard').classList.contains('collapsed'));
 $('#btnTextGen').onclick=genText;
 $('#btnTextCopy').onclick=()=>copyText($('#textResult').textContent.trim());
 $('#textHistSearch').addEventListener('input', e=>{ textHistQuery=e.target.value; renderTextHist(); });
@@ -2088,9 +2481,13 @@ $('#textInput').value = ls.get('text_draft','');
 $('#textInput').addEventListener('input', e=>{ ls.set('text_draft', e.target.value.slice(0,5000)); });
 $('#textInput').addEventListener('keydown', e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') genText(); });
 $('#imgPrompt').addEventListener('keydown', e=>{ if(e.key==='Enter') genImage(); });
-$('#btnTextClear').onclick=()=>{ $('#textInput').value=''; ls.del('text_draft'); $('#textResult').textContent='在「设置」中配置文本 API 后即可使用。'; $('#textInput').focus(); };
+$('#btnTextClear').onclick=()=>{
+  const has=$('#textInput').value.trim();
+  const doClear=()=>{ $('#textInput').value=''; ls.del('text_draft'); $('#textResult').textContent='在下面写一句话，或点上面的「✦」快捷指令试试。'; $('#textInput').focus(); };
+  if(has) uiConfirm('清空输入框里的内容？', doClear, {title:'清空', okText:'清空'}); else doClear();
+};
 $('#btnTextHistClear').onclick=()=>uiConfirm('清空全部文本生成历史？', ()=>{ ls.set('text_history',[]); renderTextHist(); }, {title:'清空历史', okText:'清空'});
-$('#btnImgClear').onclick=()=>uiConfirm('清空全部生成图片？', ()=>{ ls.set('image_history',[]); renderImgGrid(); $('#imgStage').innerHTML='在「设置」中配置图像 API 后即可生成。'; }, {title:'清空图片', okText:'清空'});
+$('#btnImgClear').onclick=()=>uiConfirm('清空全部生成图片？', ()=>{ ls.set('image_history',[]); renderImgGrid(); $('#imgStage').innerHTML='描述一张图，我来帮你画。'; }, {title:'清空图片', okText:'清空'});
 $('#btnMailRefresh').onclick=()=>renderMail(true);
 $('#mailSearch').addEventListener('input', e=>{ mailSearch=e.target.value; renderMail(false); });
 $('#btnMailUnread').onclick=()=>{ mailUnreadOnly=!mailUnreadOnly; updateMailFilterUI(); renderMail(false); };
@@ -2115,12 +2512,15 @@ renderDaily();
 renderKanban();
 renderCalendar();
 renderMail(false);
+setKanbanOpen(ls.get('kanban_open', false)); // 项目进度默认收起，只留一行摘要
+renderFocus();
 checkBackup();
 adaptScroll();
 startDueTicker();
+setTimeout(maybeWeeklyPrompt, 1800); // 周日/周一轻提示一次本周成果
 // 跨天兜底：页面长期挂着时，日期变更后刷新顶栏与到点状态
 let _curDate = todayStr();
-setInterval(()=>{ const d=todayStr(); if(d!==_curDate){ _curDate=d; renderReminders(); renderDaily(); renderCalendar(); } }, 60000);
+setInterval(()=>{ const d=todayStr(); if(d!==_curDate){ _curDate=d; renderReminders(); renderDaily(); renderCalendar(); renderFocus(); } }, 60000);
 pushReminderNotification(false);
 </script>
 </body>
