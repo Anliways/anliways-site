@@ -388,6 +388,28 @@
             if (activeId) selectArticle(activeId);
         }
 
+        // 懒加载 Markdown 渲染库（自托管、同源）：首次进入博客视图时才拉取，非博客访问零消耗
+        let markdownLibPromise = null;
+        function ensureMarkdownLib() {
+            if (window.marked && window.DOMPurify) return Promise.resolve();
+            if (!markdownLibPromise) {
+                const load = src => new Promise((ok, err) => {
+                    const s = document.createElement('script');
+                    s.src = src;
+                    s.onload = ok;
+                    s.onerror = () => err(new Error('load failed: ' + src));
+                    document.head.appendChild(s);
+                });
+                markdownLibPromise = Promise.all([
+                    load('assets/vendor/marked.min.js'),
+                    load('assets/vendor/purify.min.js')
+                ]).then(() => {
+                    if (!window.marked || !window.DOMPurify) throw new Error('markdown lib unavailable');
+                }).catch(e => { markdownLibPromise = null; throw e; });
+            }
+            return markdownLibPromise;
+        }
+
         function selectArticle(articleId) {
             document.querySelectorAll('.blog-sidebar-item').forEach(el => el.classList.remove('active'));
             const activeItem = document.getElementById(`sidebar-${articleId}`);
@@ -410,10 +432,10 @@
                         if (!res.ok) throw new Error();
                         return res.text();
                     })
-                    .then(mdText => {
+                    .then(mdText => ensureMarkdownLib().then(() => {
                         // marked 输出经 DOMPurify 消毒后再写入，防 XSS
                         document.getElementById('pm-body').innerHTML = DOMPurify.sanitize(marked.parse(mdText));
-                    })
+                    }))
                     .catch(() => {
                         const errText = currentLang === 'zh'
                             ? "文章正文内容加载失败，请检查 Markdown 文件是否存在。"
